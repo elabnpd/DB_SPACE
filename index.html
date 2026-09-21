@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>DB SPACE - File Manager</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .header {
+            background: #111827;
+            color: white;
+            padding: 20px 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 25px;
+        }
+
+        .header p {
+            margin: 6px 0 0;
+            color: #9ca3af;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 30px auto;
+            padding: 0 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.07);
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 18px;
+            font-size: 19px;
+        }
+
+        .repo-info {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 14px;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+
+        .repo-info strong {
+            color: #111827;
+        }
+
+        .upload-box {
+            display: block;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .upload-box:hover {
+            border-color: #2563eb;
+            background: #f8fafc;
+        }
+
+        .upload-icon {
+            font-size: 45px;
+            margin-bottom: 12px;
+        }
+
+        .upload-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .upload-description {
+            color: #6b7280;
+            margin-top: 7px;
+            font-size: 13px;
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .selected-file {
+            margin-top: 15px;
+            color: #2563eb;
+            font-weight: bold;
+            word-break: break-word;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            border: none;
+            border-radius: 7px;
+            padding: 11px 18px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #1d4ed8;
+        }
+
+        .btn-secondary {
+            background: #e5e7eb;
+            color: #111827;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #d1d5db;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .status {
+            display: none;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 7px;
+            font-size: 14px;
+        }
+
+        .status.success {
+            display: block;
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .status.error {
+            display: block;
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .status.info {
+            display: block;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 13px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+
+        th {
+            background: #f9fafb;
+            color: #6b7280;
+            font-size: 13px;
+        }
+
+        td {
+            font-size: 14px;
+        }
+
+        .file-name {
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 7px;
+            flex-wrap: wrap;
+        }
+
+        .small-btn {
+            padding: 7px 11px;
+            font-size: 12px;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #6b7280;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 25px;
+            color: #6b7280;
+        }
+
+        .progress-container {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .progress-bar-background {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: #2563eb;
+            transition: width 0.2s;
+        }
+
+        .footer {
+            text-align: center;
+            color: #6b7280;
+            font-size: 12px;
+            margin: 30px 0;
+        }
+
+        @media (max-width: 600px) {
+
+            .header {
+                padding: 18px 20px;
+            }
+
+            .container {
+                padding: 0 12px;
+                margin-top: 20px;
+            }
+
+            .card {
+                padding: 18px;
+            }
+
+            .upload-box {
+                padding: 30px 15px;
+            }
+
+            .actions button {
+                width: 100%;
+            }
+
+            th,
+            td {
+                padding: 10px 7px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <header class="header">
+
+        <h1>📁 DB SPACE</h1>
+
+        <p>
+            GitHub File Storage & Manager
+        </p>
+
+    </header>
+
+
+    <main class="container">
+
+
+        <!-- REPOSITORY -->
+
+        <div class="card">
+
+            <h2>🔗 Repository</h2>
+
+            <div class="repo-info">
+
+                Repository:
+                <strong>ramumeyyappan/DB_SPACE</strong>
+
+                <br>
+
+                Branch:
+                <strong>main</strong>
+
+                <br>
+
+                Storage Folder:
+                <strong>files/</strong>
+
+                <br>
+
+                Status:
+                <strong id="connectionStatus">
+                    Connecting...
+                </strong>
+
+            </div>
+
+            <div
+                id="authStatus"
+                class="status"
+            ></div>
+
+        </div>
+
+
+        <!-- UPLOAD -->
+
+        <div class="card">
+
+            <h2>📤 Upload File</h2>
+
+            <label
+                class="upload-box"
+                for="fileInput"
+            >
+
+                <div class="upload-icon">
+                    ☁️
+                </div>
+
+                <div class="upload-title">
+                    Click to select a file
+                </div>
+
+                <div class="upload-description">
+                    Files will be stored in the GitHub repository
+                </div>
+
+                <input
+                    type="file"
+                    id="fileInput"
+                    onchange="showSelectedFile()"
+                >
+
+                <div
+                    id="selectedFile"
+                    class="selected-file"
+                ></div>
+
+            </label>
+
+
+            <div class="actions">
+
+                <button
+                    id="uploadButton"
+                    class="btn-primary"
+                    onclick="uploadFile()"
+                >
+                    📤 Upload File
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="loadFiles()"
+                >
+                    🔄 Refresh
+                </button>
+
+            </div>
+
+
+            <div
+                id="uploadStatus"
+                class="status"
+            ></div>
+
+
+            <div
+                id="progressContainer"
+                class="progress-container"
+            >
+
+                <div class="progress-bar-background">
+
+                    <div
+                        id="progressBar"
+                        class="progress-bar"
+                    ></div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- FILE LIST -->
+
+        <div class="card">
+
+            <h2>📋 Stored Files</h2>
+
+            <div class="table-container">
+
+                <table>
+
+                    <thead>
+
+                        <tr>
+
+                            <th>
+                                File Name
+                            </th>
+
+                            <th>
+                                Size
+                            </th>
+
+                            <th>
+                                Actions
+                            </th>
+
+                        </tr>
+
+                    </thead>
+
+
+                    <tbody id="fileTable">
+
+                        <tr>
+
+                            <td
+                                colspan="3"
+                                class="loading"
+                            >
+                                Loading files...
+                            </td>
+
+                        </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+
+
+        <div class="footer">
+
+            DB SPACE • GitHub File Storage
+
+        </div>
+
+    </main>
+
+
+    <script src="app.js"></script>
+
+</body>
+
+</html>
