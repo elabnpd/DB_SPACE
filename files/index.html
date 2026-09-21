@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>DB SPACE</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background: #f3f5f8;
+
+            color: #172033;
+        }
+
+
+        /* =====================================================
+           HEADER
+           ===================================================== */
+
+        header {
+            min-height: 180px;
+
+            background: #101827;
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            padding: 30px 55px;
+        }
+
+
+        .brand {
+            display: flex;
+
+            align-items: center;
+
+            gap: 28px;
+        }
+
+
+        .folder-icon {
+            font-size: 58px;
+        }
+
+
+        .brand h1 {
+            margin: 0;
+
+            font-size: 54px;
+
+            font-weight: 750;
+
+            letter-spacing: 1px;
+        }
+
+
+        .brand p {
+            margin: 5px 0 0;
+
+            font-size: 27px;
+
+            color: #aebbd1;
+        }
+
+
+        #headerLoginButton {
+            border: none;
+
+            background: white;
+
+            color: #172033;
+
+            padding: 22px 38px;
+
+            border-radius: 17px;
+
+            font-size: 25px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+
+            transition: 0.2s;
+        }
+
+
+        #headerLoginButton:hover {
+            transform: translateY(-2px);
+
+            box-shadow:
+                0 10px 25px
+                rgba(0,0,0,0.15);
+        }
+
+
+        /* =====================================================
+           MAIN
+           ===================================================== */
+
+        main {
+            max-width: 1650px;
+
+            margin: auto;
+
+            padding: 55px;
+        }
+
+
+        /* =====================================================
+           ALERT
+           ===================================================== */
+
+        #alertBox {
+            display: none;
+
+            padding: 20px 30px;
+
+            border-radius: 18px;
+
+            margin-bottom: 38px;
+
+            font-size: 20px;
+        }
+
+
+        .alert-error {
+            display: block !important;
+
+            background: #ffe1e1;
+
+            color: #b30000;
+        }
+
+
+        .alert-success {
+            display: block !important;
+
+            background: #ddf8e7;
+
+            color: #087a35;
+        }
+
+
+        .alert-info {
+            display: block !important;
+
+            background: #e4efff;
+
+            color: #1355a3;
+        }
+
+
+        /* =====================================================
+           LOGIN
+           ===================================================== */
+
+        #loginPage {
+            background: white;
+
+            border-radius: 28px;
+
+            padding: 110px 40px;
+
+            text-align: center;
+
+            box-shadow:
+                0 15px 50px
+                rgba(20,30,50,0.08);
+        }
+
+
+        .login-icon {
+            font-size: 90px;
+
+            margin-bottom: 20px;
+        }
+
+
+        #loginPage h2 {
+            margin: 0;
+
+            font-size: 50px;
+        }
+
+
+        #loginPage p {
+            font-size: 25px;
+
+            color: #65748b;
+
+            margin: 25px 0 45px;
+        }
+
+
+        #continueButton {
+            border: none;
+
+            background: #2864e6;
+
+            color: white;
+
+            padding: 20px 42px;
+
+            border-radius: 15px;
+
+            font-size: 23px;
+
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+
+        #continueButton:hover {
+            background: #1f54c9;
+        }
+
+
+        #continueButton:disabled {
+            opacity: 0.6;
+
+            cursor: wait;
+        }
+
+
+        /* =====================================================
+           APP
+           ===================================================== */
+
+        #appPage {
+            display: none;
+        }
+
+
+        .dashboard-card {
+            background: white;
+
+            border-radius: 24px;
+
+            padding: 35px;
+
+            margin-bottom: 30px;
+
+            box-shadow:
+                0 10px 35px
+                rgba(20,30,50,0.07);
+        }
+
+
+        /* =====================================================
+           USER BAR
+           ===================================================== */
+
+        .user-bar {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+        }
+
+
+        .user-info {
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+        }
+
+
+        #userAvatar {
+            width: 65px;
+
+            height: 65px;
+
+            border-radius: 50%;
+
+            object-fit: cover;
+
+            background: #edf2f7;
+        }
+
+
+        #userName {
+            font-size: 23px;
+
+            font-weight: 700;
+        }
+
+
+        #connectionStatus {
+            margin-top: 5px;
+
+            font-size: 16px;
+
+            color: #087a35;
+        }
+
+
+        #logoutButton {
+            border: 1px solid #d4d9e2;
+
+            background: white;
+
+            padding: 12px 22px;
+
+            border-radius: 10px;
+
+            font-size: 16px;
+
+            cursor: pointer;
+        }
+
+
+        #logoutButton:hover {
+            background: #f5f7fa;
+        }
+
+
+        /* =====================================================
+           DROP ZONE
+           ===================================================== */
+
+        #dropZone {
+            border: 3px dashed #c9d2df;
+
+            border-radius: 22px;
+
+            padding: 60px 30px;
+
+            text-align: center;
+
+            transition: 0.2s;
+
+            cursor: pointer;
+        }
+
+
+        #dropZone.dragover {
+            border-color: #2864e6;
+
+            background: #f1f6ff;
+        }
+
+
+        #dropZone .upload-icon {
+            font-size: 65px;
+        }
+
+
+        #dropZone h3 {
+            margin: 15px 0 8px;
+
+            font-size: 28px;
+        }
+
+
+        #dropZone p {
+            color: #718096;
+
+            font-size: 18px;
+        }
+
+
+        #fileInput {
+            display: none;
+        }
+
+
+        .choose-button {
+            display: inline-block;
+
+            background: #2864e6;
+
+            color: white;
+
+            padding: 14px 25px;
+
+            border-radius: 10px;
+
+            font-weight: 700;
+
+            margin-top: 10px;
+
+            cursor: pointer;
+        }
+
+
+        /* =====================================================
+           FILE HEADER
+           ===================================================== */
+
+        .file-header {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            margin-bottom: 20px;
+        }
+
+
+        .file-header h2 {
+            margin: 0;
+
+            font-size: 28px;
+        }
+
+
+        #fileCount {
+            background: #edf2f7;
+
+            padding: 7px 13px;
+
+            border-radius: 20px;
+
+            font-size: 14px;
+        }
+
+
+        /* =====================================================
+           FILE ROW
+           ===================================================== */
+
+        .file-row {
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            gap: 20px;
+
+            padding: 20px 10px;
+
+            border-bottom:
+                1px solid #e7ebf0;
+        }
+
+
+        .file-row:last-child {
+            border-bottom: none;
+        }
+
+
+        .file-name {
+            display: flex;
+
+            align-items: center;
+
+            gap: 15px;
+
+            min-width: 0;
+        }
+
+
+        .file-icon {
+            font-size: 30px;
+        }
+
+
+        .file-name-text {
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+            white-space: nowrap;
+
+            font-size: 18px;
+
+            font-weight: 600;
+        }
+
+
+        .file-actions {
+            display: flex;
+
+            gap: 10px;
+        }
+
+
+        .file-actions button {
+            border: none;
+
+            padding: 10px 16px;
+
+            border-radius: 8px;
+
+            cursor: pointer;
+
+            font-weight: 600;
+        }
+
+
+        .download-button {
+            background: #e8f0ff;
+
+            color: #1754c5;
+        }
+
+
+        .download-button:hover {
+            background: #dbe8ff;
+        }
+
+
+        .delete-button {
+            background: #ffe7e7;
+
+            color: #c52222;
+        }
+
+
+        .delete-button:hover {
+            background: #ffdada;
+        }
+
+
+        .empty-state {
+            padding: 50px;
+
+            text-align: center;
+
+            color: #78879a;
+
+            font-size: 18px;
+        }
+
+
+        .loading {
+            text-align: center;
+
+            padding: 30px;
+
+            color: #65748b;
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+           ===================================================== */
+
+        @media (max-width: 900px) {
+
+            header {
+                padding: 25px;
+
+                flex-direction: column;
+
+                align-items: flex-start;
+
+                gap: 25px;
+            }
+
+
+            .brand h1 {
+                font-size: 40px;
+            }
+
+
+            .brand p {
+                font-size: 18px;
+            }
+
+
+            #headerLoginButton {
+                width: 100%;
+            }
+
+
+            main {
+                padding: 25px 15px;
+            }
+
+
+            #loginPage {
+                padding: 70px 20px;
+            }
+
+
+            #loginPage h2 {
+                font-size: 38px;
+            }
+
+
+            .file-row {
+                align-items: flex-start;
+
+                flex-direction: column;
+            }
+
+
+            .file-actions {
+                width: 100%;
+            }
+
+
+            .file-actions button {
+                flex: 1;
+            }
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+<!-- ==========================================================
+     HEADER
+     =========================================================== -->
+
+<header>
+
+    <div class="brand">
+
+        <div class="folder-icon">
+            📁
+        </div>
+
+        <div>
+
+            <h1>
+                DB SPACE
+            </h1>
+
+            <p>
+                GitHub File Storage · DB_SPACE
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <button
+        id="headerLoginButton"
+        type="button"
+        onclick="continueWithGitHub()"
+    >
+        🔐 Login with GitHub
+    </button>
+
+</header>
+
+
+<!-- ==========================================================
+     MAIN
+     =========================================================== -->
+
+<main>
+
+
+    <!-- ALERT -->
+
+    <div id="alertBox"></div>
+
+
+    <!-- ======================================================
+         LOGIN PAGE
+         ======================================================= -->
+
+    <section id="loginPage">
+
+        <div class="login-icon">
+            🔐
+        </div>
+
+
+        <h2>
+            Login with GitHub
+        </h2>
+
+
+        <p>
+            Sign in with your GitHub account
+            to access DB SPACE.
+        </p>
+
+
+        <button
+            id="continueButton"
+            type="button"
+            onclick="continueWithGitHub()"
+        >
+            Continue with GitHub
+        </button>
+
+    </section>
+
+
+    <!-- ======================================================
+         APPLICATION
+         ======================================================= -->
+
+    <section id="appPage">
+
+
+        <!-- USER -->
+
+        <div class="dashboard-card">
+
+            <div class="user-bar">
+
+                <div class="user-info">
+
+                    <img
+                        id="userAvatar"
+                        src=""
+                        alt="GitHub avatar"
+                    >
+
+
+                    <div>
+
+                        <div id="userName">
+                            GitHub User
+                        </div>
+
+
+                        <div id="connectionStatus">
+                            Connected
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <button
+                    id="logoutButton"
+                    type="button"
+                    onclick="logoutGitHub()"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <!-- UPLOAD -->
+
+        <div class="dashboard-card">
+
+            <div id="dropZone">
+
+                <div class="upload-icon">
+                    ☁️
+                </div>
+
+
+                <h3>
+                    Upload Files
+                </h3>
+
+
+                <p>
+                    Drag &amp; drop files here
+                    or select files from your computer
+                </p>
+
+
+                <label
+                    class="choose-button"
+                    for="fileInput"
+                >
+                    Choose Files
+                </label>
+
+
+                <input
+                    type="file"
+                    id="fileInput"
+                    multiple
+                >
+
+            </div>
+
+        </div>
+
+
+        <!-- FILES -->
+
+        <div class="dashboard-card">
+
+            <div class="file-header">
+
+                <h2>
+                    Files
+                </h2>
+
+
+                <span id="fileCount">
+                    0 files
+                </span>
+
+            </div>
+
+
+            <div id="fileList">
+
+                <div class="loading">
+                    Loading files...
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<!-- ==========================================================
+     JAVASCRIPT
+     =========================================================== -->
+
+<script src="app.js?v=4"></script>
+
+
+</body>
+
+</html>
