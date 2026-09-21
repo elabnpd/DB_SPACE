@@ -1,634 +1,1333 @@
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+<title>DB SPACE</title>
 
-    <title>DB SPACE - GitHub File Storage</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
-    <style>
+    body {
+        font-family: Arial, Helvetica, sans-serif;
+        background: #f5f7fb;
+        color: #1f2937;
+        min-height: 100vh;
+    }
 
-        * {
-            box-sizing: border-box;
+    .header {
+        height: 70px;
+        background: #ffffff;
+        border-bottom: 1px solid #e5e7eb;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 32px;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .logo {
+        font-size: 24px;
+        font-weight: 700;
+        letter-spacing: 1px;
+        color: #111827;
+    }
+
+    .header-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .connection {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    .status-dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #9ca3af;
+    }
+
+    .status-dot.connected {
+        background: #22c55e;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 35px auto;
+        padding: 0 25px;
+    }
+
+    .welcome {
+        margin-bottom: 25px;
+    }
+
+    .welcome h1 {
+        font-size: 30px;
+        margin-bottom: 7px;
+    }
+
+    .welcome p {
+        color: #6b7280;
+        font-size: 15px;
+    }
+
+    .card {
+        background: #ffffff;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        padding: 24px;
+        margin-bottom: 22px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+    }
+
+    .card-title {
+        font-size: 17px;
+        font-weight: 600;
+        margin-bottom: 17px;
+    }
+
+    .token-row {
+        display: flex;
+        gap: 10px;
+    }
+
+    .token-input {
+        flex: 1;
+        height: 45px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 0 14px;
+        font-size: 14px;
+        outline: none;
+    }
+
+    .token-input:focus {
+        border-color: #2563eb;
+    }
+
+    button {
+        border: none;
+        border-radius: 8px;
+        height: 45px;
+        padding: 0 18px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: 0.2s;
+    }
+
+    button:hover {
+        opacity: 0.9;
+    }
+
+    .primary {
+        background: #2563eb;
+        color: white;
+    }
+
+    .secondary {
+        background: #eef2f7;
+        color: #374151;
+    }
+
+    .danger {
+        background: #fee2e2;
+        color: #b91c1c;
+    }
+
+    .upload-area {
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 35px;
+        text-align: center;
+        background: #fafbfc;
+        cursor: pointer;
+    }
+
+    .upload-area:hover {
+        border-color: #2563eb;
+        background: #f8faff;
+    }
+
+    .upload-icon {
+        font-size: 35px;
+        margin-bottom: 10px;
+    }
+
+    .upload-area h3 {
+        font-size: 16px;
+        margin-bottom: 6px;
+    }
+
+    .upload-area p {
+        font-size: 13px;
+        color: #6b7280;
+    }
+
+    #fileInput {
+        display: none;
+    }
+
+    .toolbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 15px;
+    }
+
+    .file-count {
+        color: #6b7280;
+        font-size: 13px;
+    }
+
+    .table-container {
+        overflow-x: auto;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th {
+        text-align: left;
+        background: #f9fafb;
+        padding: 13px;
+        font-size: 12px;
+        color: #6b7280;
+        text-transform: uppercase;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    td {
+        padding: 14px 13px;
+        border-bottom: 1px solid #f0f0f0;
+        font-size: 14px;
+    }
+
+    tr:hover {
+        background: #fafafa;
+    }
+
+    .file-name {
+        font-weight: 600;
+        color: #111827;
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 7px;
+    }
+
+    .small-btn {
+        height: 34px;
+        padding: 0 11px;
+        font-size: 12px;
+    }
+
+    .empty {
+        text-align: center;
+        padding: 45px;
+        color: #9ca3af;
+    }
+
+    .status-message {
+        margin-top: 14px;
+        padding: 12px;
+        border-radius: 8px;
+        font-size: 13px;
+        display: none;
+    }
+
+    .status-message.success {
+        display: block;
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .status-message.error {
+        display: block;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .status-message.info {
+        display: block;
+        background: #dbeafe;
+        color: #1e40af;
+    }
+
+    .footer {
+        text-align: center;
+        color: #9ca3af;
+        font-size: 12px;
+        padding: 25px;
+    }
+
+    @media (max-width: 700px) {
+        .header {
+            padding: 0 15px;
         }
 
-        body {
-            margin: 0;
-            font-family:
-                Arial,
-                Helvetica,
-                sans-serif;
-
-            background: #f4f6f8;
-            color: #172033;
+        .container {
+            margin-top: 20px;
+            padding: 0 15px;
         }
 
-        /* =========================
-           HEADER
-        ========================= */
-
-        header {
-            height: 132px;
-
-            background: #101827;
-            color: white;
-
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-
-            padding: 25px 40px;
+        .token-row {
+            flex-direction: column;
         }
 
-        .brand {
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .toolbar {
+            align-items: flex-start;
+            gap: 10px;
+            flex-direction: column;
         }
 
-        .folder-icon {
-            font-size: 38px;
+        .file-actions {
+            flex-direction: column;
         }
+    }
+</style>
 
-        .brand-title {
-            font-size: 38px;
-            font-weight: 700;
-        }
-
-        .brand-subtitle {
-            margin-top: 5px;
-            font-size: 19px;
-            color: #aebbd0;
-        }
-
-        .github-login-button {
-            border: none;
-            background: white;
-            color: #111827;
-
-            padding: 16px 28px;
-
-            border-radius: 12px;
-
-            font-size: 19px;
-            font-weight: 700;
-
-            cursor: pointer;
-        }
-
-        .github-login-button:hover {
-            background: #e9edf3;
-        }
-
-
-        /* =========================
-           MAIN
-        ========================= */
-
-        main {
-            max-width: 1560px;
-            margin: auto;
-
-            padding: 42px;
-        }
-
-
-        /* =========================
-           ALERT
-        ========================= */
-
-        #alertBox {
-            display: none;
-
-            background: #fee2e2;
-            color: #b91c1c;
-
-            padding: 18px 22px;
-
-            border-radius: 12px;
-
-            margin-bottom: 28px;
-
-            font-size: 18px;
-        }
-
-
-        /* =========================
-           LOGIN PAGE
-        ========================= */
-
-        #loginPage {
-            background: white;
-
-            border-radius: 22px;
-
-            min-height: 435px;
-
-            display: flex;
-
-            justify-content: center;
-            align-items: center;
-
-            text-align: center;
-
-            box-shadow:
-                0 8px 30px rgba(0, 0, 0, 0.07);
-        }
-
-        .login-content {
-            max-width: 700px;
-        }
-
-        .login-icon {
-            font-size: 75px;
-        }
-
-        .login-title {
-            font-size: 36px;
-            margin: 20px 0 12px;
-        }
-
-        .login-description {
-            font-size: 21px;
-            color: #64748b;
-
-            margin-bottom: 35px;
-        }
-
-        .continue-button {
-            border: none;
-
-            background: #2563eb;
-            color: white;
-
-            padding: 17px 28px;
-
-            border-radius: 11px;
-
-            font-size: 18px;
-            font-weight: 700;
-
-            cursor: pointer;
-        }
-
-        .continue-button:hover {
-            background: #1d4ed8;
-        }
-
-
-        /* =========================
-           APP PAGE
-        ========================= */
-
-        #appPage {
-            display: none;
-        }
-
-        .top-card {
-            background: white;
-
-            border-radius: 18px;
-
-            padding: 25px 30px;
-
-            margin-bottom: 25px;
-
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-
-            box-shadow:
-                0 6px 25px rgba(0,0,0,0.06);
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .user-avatar {
-            width: 52px;
-            height: 52px;
-
-            border-radius: 50%;
-        }
-
-        .username {
-            font-size: 20px;
-            font-weight: 700;
-        }
-
-        .status {
-            color: #64748b;
-            margin-top: 5px;
-        }
-
-        .logout-button {
-            border: none;
-
-            background: #ef4444;
-            color: white;
-
-            padding: 12px 20px;
-
-            border-radius: 9px;
-
-            cursor: pointer;
-
-            font-weight: 700;
-        }
-
-
-        /* =========================
-           UPLOAD CARD
-        ========================= */
-
-        .upload-card {
-            background: white;
-
-            border-radius: 18px;
-
-            padding: 30px;
-
-            margin-bottom: 25px;
-
-            box-shadow:
-                0 6px 25px rgba(0,0,0,0.06);
-        }
-
-        .upload-title {
-            font-size: 24px;
-            font-weight: 700;
-
-            margin-bottom: 20px;
-        }
-
-        #dropZone {
-
-            border: 2px dashed #94a3b8;
-
-            border-radius: 15px;
-
-            padding: 55px;
-
-            text-align: center;
-
-            cursor: pointer;
-
-            background: #f8fafc;
-
-            transition: 0.2s;
-        }
-
-        #dropZone:hover,
-        #dropZone.drag-over {
-
-            border-color: #2563eb;
-
-            background: #eff6ff;
-        }
-
-        .drop-icon {
-            font-size: 48px;
-        }
-
-        .drop-text {
-            font-size: 20px;
-            font-weight: 600;
-
-            margin-top: 10px;
-        }
-
-        .drop-subtext {
-            color: #64748b;
-            margin-top: 8px;
-        }
-
-        #fileInput {
-            display: none;
-        }
-
-
-        /* =========================
-           FILE LIST
-        ========================= */
-
-        .files-card {
-            background: white;
-
-            border-radius: 18px;
-
-            padding: 30px;
-
-            box-shadow:
-                0 6px 25px rgba(0,0,0,0.06);
-        }
-
-        .files-title {
-            font-size: 24px;
-            font-weight: 700;
-
-            margin-bottom: 20px;
-        }
-
-        .file-row {
-
-            display: grid;
-
-            grid-template-columns:
-                1fr
-                120px
-                110px
-                90px;
-
-            gap: 15px;
-
-            align-items: center;
-
-            padding: 16px 0;
-
-            border-bottom: 1px solid #e5e7eb;
-        }
-
-        .file-name {
-            font-weight: 600;
-
-            word-break: break-word;
-        }
-
-        .file-size {
-            color: #64748b;
-        }
-
-        .file-row button {
-
-            border: none;
-
-            padding: 9px 12px;
-
-            border-radius: 7px;
-
-            cursor: pointer;
-
-            font-weight: 600;
-        }
-
-        .download-button {
-            background: #2563eb;
-            color: white;
-        }
-
-        .delete-button {
-            background: #fee2e2;
-            color: #b91c1c;
-        }
-
-        .empty-files {
-
-            padding: 40px;
-
-            text-align: center;
-
-            color: #64748b;
-        }
-
-
-        /* =========================
-           RESPONSIVE
-        ========================= */
-
-        @media (max-width: 800px) {
-
-            header {
-                height: auto;
-
-                padding: 20px;
-
-                flex-direction: column;
-
-                gap: 20px;
-
-                align-items: flex-start;
-            }
-
-            .brand-title {
-                font-size: 28px;
-            }
-
-            main {
-                padding: 20px;
-            }
-
-            .file-row {
-
-                grid-template-columns: 1fr;
-
-                gap: 8px;
-            }
-
-            .top-card {
-
-                flex-direction: column;
-
-                gap: 20px;
-
-                align-items: flex-start;
-            }
-        }
-
-    </style>
 </head>
-
 
 <body>
 
-<header>
+<header class="header">
+    <div class="logo">DB SPACE</div>
 
-    <div>
+```
+<div class="header-right">
+    <div class="connection">
+        <span id="statusDot" class="status-dot"></span>
+        <span id="connectionText">Not Connected</span>
+    </div>
+</div>
+```
 
-        <div class="brand">
+</header>
 
-            <div class="folder-icon">
-                📁
+<main class="container">
+
+```
+<div class="welcome">
+    <h1>GitHub File Storage</h1>
+    <p>Manage your files securely using your GitHub repository.</p>
+</div>
+
+
+<!-- TOKEN -->
+<div class="card">
+
+    <div class="card-title">
+        GitHub Authentication
+    </div>
+
+    <div class="token-row">
+
+        <input
+            type="password"
+            id="tokenInput"
+            class="token-input"
+            placeholder="Enter GitHub Personal Access Token"
+            autocomplete="off"
+        >
+
+        <button
+            class="primary"
+            onclick="connectGitHub()"
+        >
+            Connect
+        </button>
+
+        <button
+            class="secondary"
+            onclick="disconnectGitHub()"
+        >
+            Disconnect
+        </button>
+
+    </div>
+
+    <div id="statusMessage" class="status-message"></div>
+
+</div>
+
+
+<!-- UPLOAD -->
+<div class="card">
+
+    <div class="card-title">
+        Upload File
+    </div>
+
+    <div
+        class="upload-area"
+        onclick="document.getElementById('fileInput').click()"
+    >
+
+        <div class="upload-icon">📤</div>
+
+        <h3>
+            Click to select a file
+        </h3>
+
+        <p>
+            The selected file will be uploaded to GitHub
+        </p>
+
+    </div>
+
+    <input
+        type="file"
+        id="fileInput"
+        onchange="uploadFile()"
+    >
+
+</div>
+
+
+<!-- FILES -->
+<div class="card">
+
+    <div class="toolbar">
+
+        <div>
+            <div class="card-title" style="margin-bottom:4px;">
+                Files
             </div>
 
-            <div>
-
-                <div class="brand-title">
-                    DB SPACE
-                </div>
-
-                <div class="brand-subtitle">
-                    GitHub File Storage · DB_SPACE
-                </div>
-
+            <div class="file-count">
+                <span id="fileCount">0</span> files
             </div>
-
         </div>
+
+        <button
+            class="secondary"
+            onclick="loadFiles()"
+        >
+            🔄 Refresh
+        </button>
 
     </div>
 
 
-    <button
-        id="headerLoginButton"
-        class="github-login-button"
-        onclick="continueWithGitHub()">
+    <div class="table-container">
 
-        🔐 Login with GitHub
+        <table>
 
-    </button>
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Updated</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
 
-</header>
+            <tbody id="fileTable">
 
+                <tr>
+                    <td colspan="4" class="empty">
+                        Connect GitHub to view files
+                    </td>
+                </tr>
 
-<main>
+            </tbody>
 
-    <!-- ALERT -->
+        </table>
 
-    <div id="alertBox"></div>
+    </div>
 
-
-    <!-- LOGIN -->
-
-    <section id="loginPage">
-
-        <div class="login-content">
-
-            <div class="login-icon">
-                🔐
-            </div>
-
-            <h1 class="login-title">
-                Login with GitHub
-            </h1>
-
-            <p class="login-description">
-                Sign in with your GitHub account
-                to access DB SPACE.
-            </p>
-
-            <button
-                class="continue-button"
-                onclick="continueWithGitHub()">
-
-                Continue with GitHub
-
-            </button>
-
-        </div>
-
-    </section>
-
-
-    <!-- APPLICATION -->
-
-    <section id="appPage">
-
-        <!-- USER -->
-
-        <div class="top-card">
-
-            <div class="user-info">
-
-                <img
-                    class="user-avatar"
-                    data-github-avatar
-                    src=""
-                    alt="GitHub avatar">
-
-                <div>
-
-                    <div
-                        class="username"
-                        data-github-username>
-                    </div>
-
-                    <div
-                        id="connectionStatus"
-                        class="status">
-
-                        Connected to GitHub
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <button
-                class="logout-button"
-                onclick="logoutGitHub()">
-
-                Logout
-
-            </button>
-
-        </div>
-
-
-        <!-- UPLOAD -->
-
-        <div class="upload-card">
-
-            <div class="upload-title">
-                Upload Files
-            </div>
-
-
-            <div id="dropZone">
-
-                <div class="drop-icon">
-                    📤
-                </div>
-
-                <div class="drop-text">
-                    Drag & Drop files here
-                </div>
-
-                <div class="drop-subtext">
-                    or click to select files
-                </div>
-
-            </div>
-
-
-            <input
-                id="fileInput"
-                type="file"
-                multiple>
-
-        </div>
-
-
-        <!-- FILES -->
-
-        <div class="files-card">
-
-            <div class="files-title">
-                Files
-            </div>
-
-            <div id="fileList">
-
-                <div class="empty-files">
-                    Loading files...
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
+</div>
+```
 
 </main>
 
+<div class="footer">
+    DB SPACE • GitHub File Storage
+</div>
 
-<script src="app.js"></script>
+<script>
+
+const OWNER = "elabnpd";
+const REPO = "DB_SPACE";
+const BRANCH = "main";
+const FOLDER = "files";
+
+const API_BASE =
+    `https://api.github.com/repos/${OWNER}/${REPO}/contents/${FOLDER}`;
+
+let githubToken = null;
+let files = [];
+
+
+/* =========================
+   STATUS MESSAGE
+========================= */
+
+function showStatus(message, type = "info") {
+
+    const element =
+        document.getElementById("statusMessage");
+
+    element.textContent = message;
+
+    element.className =
+        "status-message " + type;
+}
+
+
+/* =========================
+   CONNECTION STATUS
+========================= */
+
+function setConnectionStatus(connected) {
+
+    const dot =
+        document.getElementById("statusDot");
+
+    const text =
+        document.getElementById("connectionText");
+
+    if (connected) {
+
+        dot.classList.add("connected");
+
+        text.textContent = "Connected";
+
+    } else {
+
+        dot.classList.remove("connected");
+
+        text.textContent = "Not Connected";
+    }
+}
+
+
+/* =========================
+   CONNECT GITHUB
+========================= */
+
+async function connectGitHub() {
+
+    const token =
+        document.getElementById("tokenInput").value.trim();
+
+    if (!token) {
+
+        showStatus(
+            "Please enter your GitHub token.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    showStatus(
+        "Connecting to GitHub...",
+        "info"
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                "https://api.github.com/user",
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "Invalid GitHub token."
+            );
+        }
+
+
+        const user =
+            await response.json();
+
+
+        githubToken = token;
+
+
+        setConnectionStatus(true);
+
+
+        showStatus(
+            `Connected as ${user.login}`,
+            "success"
+        );
+
+
+        await loadFiles();
+
+    } catch (error) {
+
+        githubToken = null;
+
+        setConnectionStatus(false);
+
+        showStatus(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================
+   DISCONNECT
+========================= */
+
+function disconnectGitHub() {
+
+    githubToken = null;
+
+    document.getElementById(
+        "tokenInput"
+    ).value = "";
+
+    files = [];
+
+    setConnectionStatus(false);
+
+    document.getElementById(
+        "fileCount"
+    ).textContent = "0";
+
+    document.getElementById(
+        "fileTable"
+    ).innerHTML = `
+        <tr>
+            <td colspan="4" class="empty">
+                Connect GitHub to view files
+            </td>
+        </tr>
+    `;
+
+    showStatus(
+        "Disconnected.",
+        "info"
+    );
+}
+
+
+/* =========================
+   LOAD FILES
+========================= */
+
+async function loadFiles() {
+
+    if (!githubToken) {
+
+        showStatus(
+            "Please connect to GitHub first.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    showStatus(
+        "Loading files...",
+        "info"
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}?ref=${BRANCH}`,
+                {
+                    method: "GET",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${githubToken}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if (response.status === 404) {
+
+            files = [];
+
+            renderFiles();
+
+            showStatus(
+                "The files folder does not exist yet.",
+                "info"
+            );
+
+            return;
+        }
+
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            throw new Error(
+                error.message ||
+                "Failed to load files."
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        files =
+            Array.isArray(data)
+                ? data.filter(
+                    item => item.type === "file"
+                )
+                : [];
+
+
+        renderFiles();
+
+
+        showStatus(
+            "Files loaded successfully.",
+            "success"
+        );
+
+    } catch (error) {
+
+        showStatus(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================
+   RENDER FILES
+========================= */
+
+function renderFiles() {
+
+    const table =
+        document.getElementById("fileTable");
+
+    document.getElementById(
+        "fileCount"
+    ).textContent = files.length;
+
+
+    if (files.length === 0) {
+
+        table.innerHTML = `
+            <tr>
+                <td colspan="4" class="empty">
+                    No files found
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    table.innerHTML =
+        files.map(
+            (file, index) => {
+
+                const size =
+                    formatBytes(file.size);
+
+
+                return `
+                    <tr>
+
+                        <td>
+                            <span class="file-name">
+                                ${escapeHtml(file.name)}
+                            </span>
+                        </td>
+
+                        <td>
+                            ${size}
+                        </td>
+
+                        <td>
+                            —
+                        </td>
+
+                        <td>
+
+                            <div class="file-actions">
+
+                                <button
+                                    class="primary small-btn"
+                                    onclick="downloadFile(${index})"
+                                >
+                                    Download
+                                </button>
+
+                                <button
+                                    class="danger small-btn"
+                                    onclick="deleteFile(${index})"
+                                >
+                                    Delete
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+                `;
+            }
+        ).join("");
+}
+
+
+/* =========================
+   UPLOAD FILE
+========================= */
+
+async function uploadFile() {
+
+    if (!githubToken) {
+
+        showStatus(
+            "Please connect to GitHub first.",
+            "error"
+        );
+
+        document.getElementById(
+            "fileInput"
+        ).value = "";
+
+        return;
+    }
+
+
+    const input =
+        document.getElementById("fileInput");
+
+
+    if (!input.files.length) {
+        return;
+    }
+
+
+    const file =
+        input.files[0];
+
+
+    showStatus(
+        `Uploading ${file.name}...`,
+        "info"
+    );
+
+
+    try {
+
+        const arrayBuffer =
+            await file.arrayBuffer();
+
+
+        const bytes =
+            new Uint8Array(arrayBuffer);
+
+
+        const base64 =
+            uint8ArrayToBase64(bytes);
+
+
+        const url =
+            `${API_BASE}/${encodeURIComponent(file.name)}`;
+
+
+        /*
+         * Check whether file already exists.
+         */
+
+        let existingSha = null;
+
+
+        const existingResponse =
+            await fetch(
+                `${url}?ref=${BRANCH}`,
+                {
+                    headers: {
+                        "Authorization":
+                            `Bearer ${githubToken}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if (existingResponse.ok) {
+
+            const existing =
+                await existingResponse.json();
+
+            existingSha =
+                existing.sha;
+        }
+
+
+        const body = {
+
+            message:
+                existingSha
+                    ? `Update ${file.name}`
+                    : `Upload ${file.name}`,
+
+            content:
+                base64,
+
+            branch:
+                BRANCH
+        };
+
+
+        if (existingSha) {
+
+            body.sha =
+                existingSha;
+        }
+
+
+        const response =
+            await fetch(
+                url,
+                {
+                    method: "PUT",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${githubToken}`,
+
+                        "Accept":
+                            "application/vnd.github+json",
+
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify(body)
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            throw new Error(
+                error.message ||
+                "Upload failed."
+            );
+        }
+
+
+        showStatus(
+            `${file.name} uploaded successfully.`,
+            "success"
+        );
+
+
+        input.value = "";
+
+
+        await loadFiles();
+
+    } catch (error) {
+
+        showStatus(
+            error.message,
+            "error"
+        );
+
+        input.value = "";
+    }
+}
+
+
+/* =========================
+   DOWNLOAD FILE
+========================= */
+
+async function downloadFile(index) {
+
+    if (!githubToken) {
+
+        showStatus(
+            "Please connect to GitHub first.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const file =
+        files[index];
+
+
+    showStatus(
+        `Preparing ${file.name}...`,
+        "info"
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/${encodeURIComponent(file.name)}?ref=${BRANCH}`,
+                {
+                    headers: {
+                        "Authorization":
+                            `Bearer ${githubToken}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            throw new Error(
+                error.message ||
+                "Download failed."
+            );
+        }
+
+
+        const data =
+            await response.json();
+
+
+        /*
+         * GitHub Contents API returns
+         * Base64 encoded content.
+         */
+
+        const binary =
+            atob(
+                data.content.replace(/\n/g, "")
+            );
+
+
+        const array =
+            new Uint8Array(
+                binary.length
+            );
+
+
+        for (
+            let i = 0;
+            i < binary.length;
+            i++
+        ) {
+
+            array[i] =
+                binary.charCodeAt(i);
+        }
+
+
+        const blob =
+            new Blob(
+                [array],
+                {
+                    type:
+                        "application/octet-stream"
+                }
+            );
+
+
+        const url =
+            URL.createObjectURL(blob);
+
+
+        const link =
+            document.createElement("a");
+
+
+        link.href = url;
+
+        link.download =
+            file.name;
+
+
+        document.body.appendChild(link);
+
+        link.click();
+
+        link.remove();
+
+
+        URL.revokeObjectURL(url);
+
+
+        showStatus(
+            `${file.name} downloaded.`,
+            "success"
+        );
+
+    } catch (error) {
+
+        showStatus(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================
+   DELETE FILE
+========================= */
+
+async function deleteFile(index) {
+
+    if (!githubToken) {
+
+        showStatus(
+            "Please connect to GitHub first.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const file =
+        files[index];
+
+
+    const confirmed =
+        confirm(
+            `Delete "${file.name}"?`
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    showStatus(
+        `Deleting ${file.name}...`,
+        "info"
+    );
+
+
+    try {
+
+        const response =
+            await fetch(
+                `${API_BASE}/${encodeURIComponent(file.name)}`,
+                {
+                    method: "DELETE",
+
+                    headers: {
+                        "Authorization":
+                            `Bearer ${githubToken}`,
+
+                        "Accept":
+                            "application/vnd.github+json",
+
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            message:
+                                `Delete ${file.name}`,
+
+                            sha:
+                                file.sha,
+
+                            branch:
+                                BRANCH
+                        })
+                }
+            );
+
+
+        if (!response.ok) {
+
+            const error =
+                await response.json();
+
+            throw new Error(
+                error.message ||
+                "Delete failed."
+            );
+        }
+
+
+        showStatus(
+            `${file.name} deleted successfully.`,
+            "success"
+        );
+
+
+        await loadFiles();
+
+    } catch (error) {
+
+        showStatus(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================
+   BASE64 CONVERSION
+========================= */
+
+function uint8ArrayToBase64(bytes) {
+
+    let binary = "";
+
+    const chunkSize = 0x8000;
+
+
+    for (
+        let i = 0;
+        i < bytes.length;
+        i += chunkSize
+    ) {
+
+        const chunk =
+            bytes.subarray(
+                i,
+                Math.min(
+                    i + chunkSize,
+                    bytes.length
+                )
+            );
+
+
+        binary +=
+            String.fromCharCode(
+                ...chunk
+            );
+    }
+
+
+    return btoa(binary);
+}
+
+
+/* =========================
+   BYTE FORMAT
+========================= */
+
+function formatBytes(bytes) {
+
+    if (bytes === 0) {
+        return "0 Bytes";
+    }
+
+
+    const units = [
+        "Bytes",
+        "KB",
+        "MB",
+        "GB"
+    ];
+
+
+    const index =
+        Math.floor(
+            Math.log(bytes) /
+            Math.log(1024)
+        );
+
+
+    return (
+        parseFloat(
+            (
+                bytes /
+                Math.pow(1024, index)
+            ).toFixed(2)
+        )
+        +
+        " "
+        +
+        units[index]
+    );
+}
+
+
+/* =========================
+   HTML ESCAPE
+========================= */
+
+function escapeHtml(value) {
+
+    return value
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+</script>
 
 </body>
 </html>
