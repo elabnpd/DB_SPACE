@@ -1,144 +1,199 @@
-/*
-===========================================================
-DB SPACE - GitHub File Storage
-GitHub App Device Flow Authentication
-===========================================================
-*/
+// ============================================================
+// DB SPACE
+// GitHub File Storage
+// app.js
+// ============================================================
 
 
-// =========================================================
-// GITHUB CONFIGURATION
-// =========================================================
+// ============================================================
+// CONFIGURATION
+// ============================================================
 
 const GITHUB_OWNER = "elabnpd";
-
 const GITHUB_REPO = "DB_SPACE";
-
 const GITHUB_BRANCH = "main";
-
 const GITHUB_FOLDER = "files";
 
 
-// ---------------------------------------------------------
-// IMPORTANT
-// ---------------------------------------------------------
-//
-// Put your GitHub APP CLIENT ID here.
-//
-// Example:
-//
-// const GITHUB_CLIENT_ID = "Iv1.xxxxxxxxxxxxx";
-//
-// DO NOT put:
-//
-// - github_pat_...
-// - client secret
-// - private key
-//
-// in this file.
-// ---------------------------------------------------------
-
+// Your GitHub App Client ID
 const GITHUB_CLIENT_ID =
     "Iv23liuJ6PzKlCSkbWpL";
 
 
+// Your Cloudflare Worker BASE URL
+//
+// Example:
+// https://db-space-auth.xxxxx.workers.dev
+//
+// DO NOT add /exchange here.
+//
+const WORKER_URL =
+    "https://db-space.elab-npd.workers.dev";
+
+
+// GitHub App callback URL
+const REDIRECT_URI =
+    "https://elabnpd.github.io/DB_SPACE/";
+
+
+// GitHub API
 const API_BASE =
     `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}`;
 
 
-// =========================================================
-// STORAGE KEYS
-// =========================================================
+// Browser session keys
+const TOKEN_KEY =
+    "dbspace_github_token";
 
-const ACCESS_TOKEN_KEY =
-    "db_space_github_access_token";
+const STATE_KEY =
+    "dbspace_oauth_state";
 
-const REFRESH_TOKEN_KEY =
-    "db_space_github_refresh_token";
-
-const TOKEN_EXPIRY_KEY =
-    "db_space_github_token_expiry";
+const VERIFIER_KEY =
+    "dbspace_code_verifier";
 
 
-// =========================================================
-// TOKEN
-// =========================================================
-
-let githubToken =
-    sessionStorage.getItem(ACCESS_TOKEN_KEY);
-
-
-// =========================================================
-// GITHUB HEADERS
-// =========================================================
-
-function getGitHubHeaders() {
-
-    return {
-
-        "Accept":
-            "application/vnd.github+json",
-
-        "Authorization":
-            `Bearer ${githubToken}`,
-
-        "X-GitHub-Api-Version":
-            "2022-11-28"
-
-    };
-}
-
-
-// =========================================================
-// PAGE LOAD
-// =========================================================
+// ============================================================
+// START
+// ============================================================
 
 document.addEventListener(
     "DOMContentLoaded",
     async function () {
 
-        updateUI();
+        console.log(
+            "DB SPACE application started"
+        );
 
-        if (githubToken) {
+        setupFileInput();
 
-            const valid =
-                await validateToken();
+        setupDragAndDrop();
 
-            if (valid) {
+        // Handle GitHub redirect first
+        await handleOAuthCallback();
 
-                await loadUser();
+        // Check existing session
+        const token =
+            sessionStorage.getItem(
+                TOKEN_KEY
+            );
+
+        if (token) {
+
+            console.log(
+                "Existing GitHub session found"
+            );
+
+            const connected =
+                await testGitHubConnection();
+
+            if (connected) {
+
+                showApplication();
 
                 await loadFiles();
 
             } else {
 
-                clearToken();
-
-                updateUI();
-
+                showLogin();
             }
 
+        } else {
+
+            showLogin();
         }
 
     }
 );
 
 
-// =========================================================
+// ============================================================
+// CONTINUE WITH GITHUB
+// ============================================================
+
+async function continueWithGitHub() {
+
+    console.log(
+        "Continue with GitHub clicked"
+    );
+
+
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
+
+
+    // Already logged in
+    if (token) {
+
+        console.log(
+            "Existing token found"
+        );
+
+
+        const connected =
+            await testGitHubConnection();
+
+
+        if (connected) {
+
+            showApplication();
+
+            await loadFiles();
+
+            return;
+        }
+
+
+        // Token no longer valid
+        sessionStorage.removeItem(
+            TOKEN_KEY
+        );
+    }
+
+
+    // Start new OAuth login
+    await loginWithGitHub();
+}
+
+
+window.continueWithGitHub =
+    continueWithGitHub;
+
+
+// ============================================================
 // LOGIN WITH GITHUB
-// =========================================================
+// ============================================================
 
 async function loginWithGitHub() {
+
+    console.log(
+        "Starting GitHub OAuth login..."
+    );
+
 
     if (
         !GITHUB_CLIENT_ID ||
         GITHUB_CLIENT_ID ===
-        "YOUR_GITHUB_APP_CLIENT_ID"
+            "YOUR_GITHUB_CLIENT_ID"
     ) {
 
-        showStatus(
-            "Please add your GitHub App Client ID in app.js first.",
-            "error"
+        showError(
+            "GitHub Client ID is not configured."
+        );
+
+        return;
+    }
+
+
+    if (
+        !WORKER_URL ||
+        WORKER_URL ===
+            "YOUR_CLOUDFLARE_WORKER_URL"
+    ) {
+
+        showError(
+            "Cloudflare Worker URL is not configured."
         );
 
         return;
@@ -147,30 +202,281 @@ async function loginWithGitHub() {
 
     try {
 
-        showStatus(
-            "Connecting to GitHub...",
-            "info"
+        // Generate OAuth state
+        const state =
+            generateRandomString(32);
+
+
+        // Generate PKCE verifier
+        const verifier =
+            generateRandomString(64);
+
+
+        // Generate PKCE challenge
+        const challenge =
+            await generateCodeChallenge(
+                verifier
+            );
+
+
+        // Save state
+        sessionStorage.setItem(
+            STATE_KEY,
+            state
         );
 
 
-        const response = await fetch(
-            `https://github.com/login/device/code?client_id=${encodeURIComponent(GITHUB_CLIENT_ID)}`,
-            {
-                method: "POST",
+        // Save verifier
+        sessionStorage.setItem(
+            VERIFIER_KEY,
+            verifier
+        );
 
-                headers: {
-                    "Accept":
-                        "application/json",
 
-                    "Content-Type":
-                        "application/json"
+        // GitHub authorization URL
+        const params =
+            new URLSearchParams();
+
+
+        params.set(
+            "client_id",
+            GITHUB_CLIENT_ID
+        );
+
+
+        params.set(
+            "redirect_uri",
+            REDIRECT_URI
+        );
+
+
+        params.set(
+            "response_type",
+            "code"
+        );
+
+
+        params.set(
+            "state",
+            state
+        );
+
+
+        params.set(
+            "code_challenge",
+            challenge
+        );
+
+
+        params.set(
+            "code_challenge_method",
+            "S256"
+        );
+
+
+        const authorizationURL =
+            "https://github.com/login/oauth/authorize?" +
+            params.toString();
+
+
+        console.log(
+            "Redirecting to GitHub..."
+        );
+
+
+        // IMPORTANT:
+        // We redirect the browser.
+        //
+        // We DO NOT fetch GitHub's
+        // /login/device/code endpoint.
+        //
+        window.location.href =
+            authorizationURL;
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "OAuth start error:",
+            error
+        );
+
+        showError(
+            "GitHub login failed: " +
+            error.message
+        );
+    }
+}
+
+
+window.loginWithGitHub =
+    loginWithGitHub;
+
+
+// ============================================================
+// HANDLE OAUTH CALLBACK
+// ============================================================
+
+async function handleOAuthCallback() {
+
+    const urlParams =
+        new URLSearchParams(
+            window.location.search
+        );
+
+
+    const code =
+        urlParams.get("code");
+
+
+    const state =
+        urlParams.get("state");
+
+
+    const error =
+        urlParams.get("error");
+
+
+    // Nothing returned
+    if (!code && !error) {
+
+        return;
+    }
+
+
+    console.log(
+        "GitHub OAuth callback detected"
+    );
+
+
+    // GitHub returned an error
+    if (error) {
+
+        const description =
+            urlParams.get(
+                "error_description"
+            );
+
+
+        showError(
+            "GitHub authorization failed: " +
+            (description || error)
+        );
+
+
+        cleanURL();
+
+        return;
+    }
+
+
+    // Get stored state
+    const savedState =
+        sessionStorage.getItem(
+            STATE_KEY
+        );
+
+
+    // Validate state
+    if (
+        !state ||
+        !savedState ||
+        state !== savedState
+    ) {
+
+        console.error(
+            "OAuth state mismatch"
+        );
+
+
+        showError(
+            "GitHub login failed: OAuth state mismatch."
+        );
+
+
+        clearOAuthData();
+
+        cleanURL();
+
+        return;
+    }
+
+
+    // Get PKCE verifier
+    const verifier =
+        sessionStorage.getItem(
+            VERIFIER_KEY
+        );
+
+
+    if (!verifier) {
+
+        showError(
+            "GitHub login failed: PKCE verifier missing."
+        );
+
+
+        clearOAuthData();
+
+        cleanURL();
+
+        return;
+    }
+
+
+    try {
+
+        setStatus(
+            "Connecting to GitHub..."
+        );
+
+
+        console.log(
+            "Sending OAuth code to Cloudflare Worker..."
+        );
+
+
+        // ====================================================
+        // THIS IS THE ONLY FETCH TO OUR WORKER
+        // ====================================================
+
+        const response =
+            await fetch(
+                `${WORKER_URL}/exchange`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            code:
+                                code,
+
+                            redirect_uri:
+                                REDIRECT_URI,
+
+                            code_verifier:
+                                verifier
+
+                        })
                 }
-            }
-        );
+            );
 
 
         const data =
-            await safeJson(response);
+            await response.json();
+
+
+        console.log(
+            "Worker response:",
+            data
+        );
 
 
         if (!response.ok) {
@@ -178,340 +484,95 @@ async function loginWithGitHub() {
             throw new Error(
                 data.error_description ||
                 data.error ||
-                `GitHub error ${response.status}`
+                data.message ||
+                "Token exchange failed"
             );
         }
 
 
-        const deviceCode =
-            data.device_code;
-
-        const userCode =
-            data.user_code;
-
-        const verificationUri =
-            data.verification_uri;
-
-        const interval =
-            Number(data.interval || 5);
-
-        const expiresIn =
-            Number(data.expires_in || 900);
-
-
-        if (!deviceCode || !userCode) {
+        if (!data.access_token) {
 
             throw new Error(
-                "GitHub did not return a device code."
+                "No access token returned by Worker."
             );
         }
 
 
-        document.getElementById(
-            "deviceLogin"
-        ).style.display = "block";
-
-
-        document.getElementById(
-            "deviceCode"
-        ).textContent = userCode;
-
-
-        document.getElementById(
-            "deviceUrl"
-        ).href = verificationUri;
-
-
-        showStatus(
-            "Enter the displayed code on GitHub.",
-            "info"
+        // Save token
+        sessionStorage.setItem(
+            TOKEN_KEY,
+            data.access_token
         );
 
 
-        // Open GitHub automatically
-        window.open(
-            verificationUri,
-            "_blank"
+        clearOAuthData();
+
+
+        // Remove ?code=...
+        cleanURL();
+
+
+        console.log(
+            "GitHub authentication successful"
         );
 
 
-        await pollForToken(
-            deviceCode,
-            interval,
-            expiresIn
-        );
+        // Verify token
+        const connected =
+            await testGitHubConnection();
 
 
-    } catch (error) {
+        if (!connected) {
+
+            throw new Error(
+                "GitHub token could not be verified."
+            );
+        }
+
+
+        showApplication();
+
+
+        await loadFiles();
+
+
+    }
+
+    catch (error) {
 
         console.error(
-            "GitHub login error:",
+            "OAuth callback error:",
             error
         );
 
 
-        showStatus(
+        showError(
             "GitHub login failed: " +
-            error.message,
-            "error"
-        );
-
-    }
-
-}
-
-
-// =========================================================
-// DEVICE FLOW POLLING
-// =========================================================
-
-async function pollForToken(
-    deviceCode,
-    interval,
-    expiresIn
-) {
-
-    const startTime =
-        Date.now();
-
-
-    while (
-        Date.now() - startTime <
-        expiresIn * 1000
-    ) {
-
-
-        await sleep(
-            interval * 1000
+            error.message
         );
 
 
-        const params =
-            new URLSearchParams({
+        clearOAuthData();
 
-                client_id:
-                    GITHUB_CLIENT_ID,
-
-                device_code:
-                    deviceCode,
-
-                grant_type:
-                    "urn:ietf:params:oauth:grant-type:device_code"
-
-            });
-
-
-        try {
-
-            const response =
-                await fetch(
-                    `https://github.com/login/oauth/access_token?${params.toString()}`,
-                    {
-                        method: "POST",
-
-                        headers: {
-                            "Accept":
-                                "application/json",
-
-                            "Content-Type":
-                                "application/json"
-                        }
-                    }
-                );
-
-
-            const data =
-                await safeJson(response);
-
-
-            // -------------------------------------------------
-            // SUCCESS
-            // -------------------------------------------------
-
-            if (
-                response.ok &&
-                data.access_token
-            ) {
-
-                githubToken =
-                    data.access_token;
-
-
-                sessionStorage.setItem(
-                    ACCESS_TOKEN_KEY,
-                    githubToken
-                );
-
-
-                // Save refresh token if supplied
-                if (data.refresh_token) {
-
-                    sessionStorage.setItem(
-                        REFRESH_TOKEN_KEY,
-                        data.refresh_token
-                    );
-
-                }
-
-
-                // Save expiry
-                if (data.expires_in) {
-
-                    const expiry =
-                        Date.now() +
-                        Number(data.expires_in) * 1000;
-
-                    sessionStorage.setItem(
-                        TOKEN_EXPIRY_KEY,
-                        String(expiry)
-                    );
-
-                }
-
-
-                document.getElementById(
-                    "deviceLogin"
-                ).style.display = "none";
-
-
-                showStatus(
-                    "✅ GitHub login successful.",
-                    "success"
-                );
-
-
-                updateUI();
-
-
-                const user =
-                    await loadUser();
-
-
-                if (!user) {
-
-                    throw new Error(
-                        "Unable to verify GitHub account."
-                    );
-
-                }
-
-
-                await loadFiles();
-
-
-                return;
-
-            }
-
-
-            // -------------------------------------------------
-            // WAITING FOR USER
-            // -------------------------------------------------
-
-            if (
-                data.error ===
-                "authorization_pending"
-            ) {
-
-                showStatus(
-                    "Waiting for GitHub authorization...",
-                    "info"
-                );
-
-                continue;
-
-            }
-
-
-            // -------------------------------------------------
-            // SLOW DOWN
-            // -------------------------------------------------
-
-            if (
-                data.error ===
-                "slow_down"
-            ) {
-
-                interval += 5;
-
-                showStatus(
-                    "GitHub requested slower polling...",
-                    "info"
-                );
-
-                continue;
-
-            }
-
-
-            // -------------------------------------------------
-            // EXPIRED
-            // -------------------------------------------------
-
-            if (
-                data.error ===
-                "expired_token"
-            ) {
-
-                throw new Error(
-                    "The GitHub verification code expired. Please try Login again."
-                );
-
-            }
-
-
-            // -------------------------------------------------
-            // DENIED
-            // -------------------------------------------------
-
-            if (
-                data.error ===
-                "access_denied"
-            ) {
-
-                throw new Error(
-                    "GitHub authorization was cancelled."
-                );
-
-            }
-
-
-            // -------------------------------------------------
-            // OTHER ERROR
-            // -------------------------------------------------
-
-            if (data.error) {
-
-                throw new Error(
-                    data.error_description ||
-                    data.error
-                );
-
-            }
-
-        } catch (error) {
-
-            throw error;
-
-        }
-
+        cleanURL();
     }
-
-
-    throw new Error(
-        "GitHub login timed out. Please try again."
-    );
-
 }
 
 
-// =========================================================
-// VALIDATE TOKEN
-// =========================================================
+// ============================================================
+// TEST GITHUB CONNECTION
+// ============================================================
 
-async function validateToken() {
+async function testGitHubConnection() {
 
-    if (!githubToken) {
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
+
+
+    if (!token) {
+
         return false;
     }
 
@@ -522,293 +583,163 @@ async function validateToken() {
             await fetch(
                 "https://api.github.com/user",
                 {
-                    headers:
-                        getGitHubHeaders()
+                    method: "GET",
+
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
                 }
             );
 
 
         if (!response.ok) {
 
-            return false;
+            console.error(
+                "GitHub API error:",
+                response.status
+            );
 
+
+            if (
+                response.status === 401 ||
+                response.status === 403
+            ) {
+
+                sessionStorage.removeItem(
+                    TOKEN_KEY
+                );
+            }
+
+
+            return false;
         }
+
+
+        const user =
+            await response.json();
+
+
+        console.log(
+            "Authenticated GitHub user:",
+            user.login
+        );
+
+
+        updateUserInfo(
+            user
+        );
 
 
         return true;
 
+    }
 
-    } catch (error) {
+    catch (error) {
 
         console.error(
-            "Token validation error:",
+            "GitHub connection error:",
             error
         );
+
 
         return false;
-
     }
-
 }
 
 
-// =========================================================
-// LOAD USER
-// =========================================================
-
-async function loadUser() {
-
-    try {
-
-        const response =
-            await fetch(
-                "https://api.github.com/user",
-                {
-                    headers:
-                        getGitHubHeaders()
-                }
-            );
-
-
-        const data =
-            await safeJson(response);
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                data.message ||
-                "Unable to get GitHub user."
-            );
-
-        }
-
-
-        const userInfo =
-            document.getElementById(
-                "userInfo"
-            );
-
-
-        const username =
-            document.getElementById(
-                "username"
-            );
-
-
-        const avatar =
-            document.getElementById(
-                "userAvatar"
-            );
-
-
-        username.textContent =
-            data.login;
-
-
-        avatar.src =
-            data.avatar_url;
-
-
-        userInfo.style.display =
-            "flex";
-
-
-        return data;
-
-
-    } catch (error) {
-
-        console.error(
-            "User loading error:",
-            error
-        );
-
-
-        return null;
-
-    }
-
-}
-
-
-// =========================================================
+// ============================================================
 // LOAD FILES
-// =========================================================
+// ============================================================
 
 async function loadFiles() {
 
-    if (!githubToken) {
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
+
+
+    if (!token) {
+
         return;
     }
 
 
-    const loading =
-        document.getElementById(
-            "loading"
-        );
-
-
-    const fileList =
-        document.getElementById(
-            "fileList"
-        );
-
-
-    const table =
-        document.getElementById(
-            "fileTable"
-        );
-
-
-    loading.style.display =
-        "block";
-
-
-    table.style.display =
-        "none";
-
-
-    fileList.innerHTML =
-        "";
-
-
     try {
+
+        setStatus(
+            "Loading files..."
+        );
+
+
+        const url =
+            `${API_BASE}/contents/${GITHUB_FOLDER}` +
+            `?ref=${encodeURIComponent(GITHUB_BRANCH)}`;
+
 
         const response =
             await fetch(
-                `${API_BASE}/contents/${encodeURIComponent(GITHUB_FOLDER)}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
+                url,
                 {
-                    headers:
-                        getGitHubHeaders()
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
                 }
             );
 
 
-        const data =
-            await safeJson(response);
+        // files/ doesn't exist yet
+        if (response.status === 404) {
 
+            displayFiles([]);
 
-        if (
-            response.status === 404
-        ) {
-
-            loading.textContent =
-                "No files uploaded yet.";
+            setStatus(
+                "Ready"
+            );
 
             return;
-
         }
 
 
         if (!response.ok) {
 
+            const data =
+                await response.json();
+
+
             throw new Error(
                 data.message ||
-                `GitHub error ${response.status}`
+                "Unable to load files."
             );
-
         }
 
 
         const files =
-            Array.isArray(data)
-                ? data.filter(
-                    item =>
-                        item.type === "file"
-                )
-                : [];
+            await response.json();
 
 
-        loading.style.display =
-            "none";
-
-
-        table.style.display =
-            "table";
-
-
-        if (files.length === 0) {
-
-            fileList.innerHTML = `
-                <tr>
-                    <td
-                        colspan="4"
-                        class="empty"
-                    >
-                        No files found.
-                    </td>
-                </tr>
-            `;
-
-            return;
-
-        }
-
-
-        files.forEach(
-            file => {
-
-                const row =
-                    document.createElement(
-                        "tr"
-                    );
-
-
-                const encodedName =
-                    encodeURIComponent(
-                        file.name
-                    );
-
-
-                row.innerHTML = `
-
-                    <td>
-                        📄
-                        ${escapeHtml(file.name)}
-                    </td>
-
-                    <td>
-                        ${formatBytes(file.size)}
-                    </td>
-
-                    <td>
-                        ${file.updated_at
-                            ? new Date(
-                                file.updated_at
-                            ).toLocaleString()
-                            : "-"
-                        }
-                    </td>
-
-                    <td>
-
-                        <button
-                            class="action-button download-button"
-                            onclick="downloadFile('${encodedName}')"
-                        >
-                            Download
-                        </button>
-
-                        <button
-                            class="action-button delete-button"
-                            onclick="deleteFile('${encodedName}')"
-                        >
-                            Delete
-                        </button>
-
-                    </td>
-
-                `;
-
-
-                fileList.appendChild(row);
-
-            }
+        displayFiles(
+            files
         );
 
 
-    } catch (error) {
+        setStatus(
+            "Ready"
+        );
+
+    }
+
+    catch (error) {
 
         console.error(
             "Load files error:",
@@ -816,316 +747,416 @@ async function loadFiles() {
         );
 
 
-        loading.style.display =
-            "none";
+        showError(
+            "Unable to load files: " +
+            error.message
+        );
 
 
-        table.style.display =
-            "table";
-
-
-        fileList.innerHTML = `
-
-            <tr>
-
-                <td
-                    colspan="4"
-                    class="empty"
-                >
-                    ❌ ${escapeHtml(error.message)}
-                </td>
-
-            </tr>
-
-        `;
-
+        setStatus(
+            "Error"
+        );
     }
-
 }
 
 
-// =========================================================
-// FILE SELECT
-// =========================================================
+// ============================================================
+// DISPLAY FILES
+// ============================================================
 
-document.addEventListener(
-    "DOMContentLoaded",
-    function () {
+function displayFiles(files) {
 
-        const fileInput =
-            document.getElementById(
-                "fileInput"
-            );
-
-
-        const uploadArea =
-            document.getElementById(
-                "uploadArea"
-            );
-
-
-        fileInput.addEventListener(
-            "change",
-            function () {
-
-                if (
-                    this.files &&
-                    this.files.length > 0
-                ) {
-
-                    showSelectedFile(
-                        this.files[0]
-                    );
-
-                }
-
-            }
-        );
-
-
-        // Drag and drop
-
-        uploadArea.addEventListener(
-            "dragover",
-            function (event) {
-
-                event.preventDefault();
-
-                uploadArea.classList.add(
-                    "dragover"
-                );
-
-            }
-        );
-
-
-        uploadArea.addEventListener(
-            "dragleave",
-            function () {
-
-                uploadArea.classList.remove(
-                    "dragover"
-                );
-
-            }
-        );
-
-
-        uploadArea.addEventListener(
-            "drop",
-            function (event) {
-
-                event.preventDefault();
-
-                uploadArea.classList.remove(
-                    "dragover"
-                );
-
-
-                const files =
-                    event.dataTransfer.files;
-
-
-                if (
-                    files &&
-                    files.length > 0
-                ) {
-
-                    fileInput.files =
-                        files;
-
-                    showSelectedFile(
-                        files[0]
-                    );
-
-                }
-
-            }
-        );
-
-    }
-);
-
-
-// =========================================================
-// SHOW SELECTED FILE
-// =========================================================
-
-function showSelectedFile(file) {
-
-    const selected =
+    const container =
         document.getElementById(
-            "selectedFile"
+            "fileList"
         );
 
 
-    const uploadButton =
-        document.getElementById(
-            "uploadButton"
-        );
+    if (!container) {
 
-
-    selected.textContent =
-        `Selected: ${file.name} (${formatBytes(file.size)})`;
-
-
-    uploadButton.style.display =
-        "inline-block";
-
-}
-
-
-// =========================================================
-// UPLOAD FILE
-// =========================================================
-
-async function uploadFile() {
-
-    if (!githubToken) {
-
-        showStatus(
-            "Please login with GitHub first.",
-            "error"
+        console.error(
+            "#fileList does not exist"
         );
 
         return;
-
     }
 
 
-    const fileInput =
+    container.innerHTML = "";
+
+
+    if (
+        !files ||
+        files.length === 0
+    ) {
+
+        container.innerHTML = `
+            <div class="empty-files">
+                No files uploaded yet.
+            </div>
+        `;
+
+        return;
+    }
+
+
+    files.forEach(
+        file => {
+
+            if (
+                file.type !== "file"
+            ) {
+
+                return;
+            }
+
+
+            const row =
+                document.createElement(
+                    "div"
+                );
+
+
+            row.className =
+                "file-row";
+
+
+            const name =
+                document.createElement(
+                    "div"
+                );
+
+
+            name.className =
+                "file-name";
+
+
+            name.textContent =
+                file.name;
+
+
+            const size =
+                document.createElement(
+                    "div"
+                );
+
+
+            size.className =
+                "file-size";
+
+
+            size.textContent =
+                formatBytes(
+                    file.size
+                );
+
+
+            const download =
+                document.createElement(
+                    "button"
+                );
+
+
+            download.className =
+                "download-button";
+
+
+            download.textContent =
+                "Download";
+
+
+            download.onclick =
+                function () {
+
+                    downloadFile(
+                        file.name
+                    );
+                };
+
+
+            const deleteButton =
+                document.createElement(
+                    "button"
+                );
+
+
+            deleteButton.className =
+                "delete-button";
+
+
+            deleteButton.textContent =
+                "Delete";
+
+
+            deleteButton.onclick =
+                function () {
+
+                    deleteFile(
+                        file.name,
+                        file.sha
+                    );
+                };
+
+
+            row.appendChild(
+                name
+            );
+
+
+            row.appendChild(
+                size
+            );
+
+
+            row.appendChild(
+                download
+            );
+
+
+            row.appendChild(
+                deleteButton
+            );
+
+
+            container.appendChild(
+                row
+            );
+        }
+    );
+}
+
+
+// ============================================================
+// FILE INPUT
+// ============================================================
+
+function setupFileInput() {
+
+    const input =
         document.getElementById(
             "fileInput"
         );
 
 
-    const file =
-        fileInput.files[0];
+    const dropZone =
+        document.getElementById(
+            "dropZone"
+        );
+
+
+    if (!input || !dropZone) {
+
+        return;
+    }
+
+
+    dropZone.addEventListener(
+        "click",
+        function () {
+
+            input.click();
+        }
+    );
+
+
+    input.addEventListener(
+        "change",
+        function (event) {
+
+            const files =
+                event.target.files;
+
+
+            if (!files) {
+
+                return;
+            }
+
+
+            for (
+                const file of files
+            ) {
+
+                uploadFile(
+                    file
+                );
+            }
+
+
+            input.value = "";
+        }
+    );
+}
+
+
+// ============================================================
+// DRAG & DROP
+// ============================================================
+
+function setupDragAndDrop() {
+
+    const zone =
+        document.getElementById(
+            "dropZone"
+        );
+
+
+    if (!zone) {
+
+        return;
+    }
+
+
+    zone.addEventListener(
+        "dragover",
+        function (event) {
+
+            event.preventDefault();
+
+            zone.classList.add(
+                "drag-over"
+            );
+        }
+    );
+
+
+    zone.addEventListener(
+        "dragleave",
+        function () {
+
+            zone.classList.remove(
+                "drag-over"
+            );
+        }
+    );
+
+
+    zone.addEventListener(
+        "drop",
+        function (event) {
+
+            event.preventDefault();
+
+
+            zone.classList.remove(
+                "drag-over"
+            );
+
+
+            const files =
+                event.dataTransfer.files;
+
+
+            for (
+                const file of files
+            ) {
+
+                uploadFile(
+                    file
+                );
+            }
+        }
+    );
+}
+
+
+// ============================================================
+// UPLOAD FILE
+// ============================================================
+
+async function uploadFile(file) {
+
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
+
+
+    if (!token) {
+
+        showError(
+            "Please login with GitHub first."
+        );
+
+        return;
+    }
 
 
     if (!file) {
 
-        showStatus(
-            "Please select a file.",
-            "error"
-        );
-
         return;
-
     }
 
 
-    // GitHub Contents API limit
-    // approximately 100 MB
-
+    // GitHub Contents API maximum
     if (
         file.size >
         100 * 1024 * 1024
     ) {
 
-        showStatus(
-            "File is larger than 100 MB.",
-            "error"
+        showError(
+            "Maximum file size is 100 MB."
         );
 
         return;
-
     }
-
-
-    const progressContainer =
-        document.getElementById(
-            "progressContainer"
-        );
-
-
-    const progressFill =
-        document.getElementById(
-            "progressFill"
-        );
-
-
-    const progressText =
-        document.getElementById(
-            "progressText"
-        );
 
 
     try {
 
-        progressContainer.style.display =
-            "block";
-
-
-        progressFill.style.width =
-            "10%";
-
-
-        progressText.textContent =
-            "Preparing file...";
+        setStatus(
+            `Uploading ${file.name}...`
+        );
 
 
         const base64 =
-            await fileToBase64(file);
-
-
-        progressFill.style.width =
-            "35%";
-
-
-        progressText.textContent =
-            "Checking existing file...";
+            await fileToBase64(
+                file
+            );
 
 
         const path =
             `${GITHUB_FOLDER}/${file.name}`;
 
 
-        // -------------------------------------------------
         // Check whether file already exists
-        // -------------------------------------------------
-
-        let existingSha = null;
+        let sha = null;
 
 
-        const existingResponse =
+        const checkResponse =
             await fetch(
-                `${API_BASE}/contents/${encodePath(path)}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
+                `${API_BASE}/contents/${path}` +
+                `?ref=${GITHUB_BRANCH}`,
                 {
-                    headers:
-                        getGitHubHeaders()
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json"
+                    }
                 }
             );
 
 
-        if (existingResponse.ok) {
+        if (
+            checkResponse.ok
+        ) {
 
             const existing =
-                await safeJson(
-                    existingResponse
-                );
+                await checkResponse.json();
 
 
-            existingSha =
+            sha =
                 existing.sha;
-
         }
-
-
-        progressFill.style.width =
-            "55%";
-
-
-        progressText.textContent =
-            existingSha
-                ? "Updating file on GitHub..."
-                : "Uploading file to GitHub...";
 
 
         const body = {
 
             message:
-                existingSha
+                sha
                     ? `Update ${file.name}`
                     : `Upload ${file.name}`,
 
@@ -1134,98 +1165,71 @@ async function uploadFile() {
 
             branch:
                 GITHUB_BRANCH
-
         };
 
 
-        if (existingSha) {
+        if (sha) {
 
             body.sha =
-                existingSha;
-
+                sha;
         }
 
 
-        const uploadResponse =
+        const response =
             await fetch(
-                `${API_BASE}/contents/${encodePath(path)}`,
+                `${API_BASE}/contents/${path}`,
                 {
                     method: "PUT",
 
                     headers: {
-                        ...getGitHubHeaders(),
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json",
 
                         "Content-Type":
                             "application/json"
                     },
 
                     body:
-                        JSON.stringify(body)
+                        JSON.stringify(
+                            body
+                        )
                 }
             );
 
 
-        const uploadData =
-            await safeJson(
-                uploadResponse
-            );
+        const data =
+            await response.json();
 
 
-        if (!uploadResponse.ok) {
+        if (!response.ok) {
 
             throw new Error(
-                uploadData.message ||
-                `GitHub upload error ${uploadResponse.status}`
+                data.message ||
+                "Upload failed."
             );
-
         }
 
 
-        progressFill.style.width =
-            "100%";
-
-
-        progressText.textContent =
-            "Upload complete.";
-
-
-        showStatus(
-            `✅ ${file.name} uploaded successfully.`,
-            "success"
+        console.log(
+            "Upload successful:",
+            file.name
         );
 
 
-        fileInput.value = "";
-
-
-        document.getElementById(
-            "selectedFile"
-        ).textContent = "";
-
-
-        document.getElementById(
-            "uploadButton"
-        ).style.display = "none";
+        setStatus(
+            `${file.name} uploaded`
+        );
 
 
         await loadFiles();
 
+    }
 
-        setTimeout(
-            function () {
-
-                progressContainer.style.display =
-                    "none";
-
-                progressFill.style.width =
-                    "0%";
-
-            },
-            1500
-        );
-
-
-    } catch (error) {
+    catch (error) {
 
         console.error(
             "Upload error:",
@@ -1233,132 +1237,86 @@ async function uploadFile() {
         );
 
 
-        progressContainer.style.display =
-            "none";
-
-
-        showStatus(
-            `❌ Upload failed: ${error.message}`,
-            "error"
+        showError(
+            "Upload failed: " +
+            error.message
         );
-
     }
-
 }
 
 
-// =========================================================
-// DOWNLOAD FILE
-// =========================================================
+window.uploadFile =
+    uploadFile;
+
+
+// ============================================================
+// DOWNLOAD
+// ============================================================
 
 async function downloadFile(
-    encodedName
+    filename
 ) {
 
-    if (!githubToken) {
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
 
-        showStatus(
-            "Please login with GitHub first.",
-            "error"
+
+    if (!token) {
+
+        showError(
+            "Please login first."
         );
 
         return;
-
     }
-
-
-    const fileName =
-        decodeURIComponent(
-            encodedName
-        );
 
 
     try {
 
-        showStatus(
-            `Downloading ${fileName}...`,
-            "info"
+        setStatus(
+            `Downloading ${filename}...`
         );
 
 
         const path =
-            `${GITHUB_FOLDER}/${fileName}`;
+            `${GITHUB_FOLDER}/${filename}`;
 
 
         const response =
             await fetch(
-                `${API_BASE}/contents/${encodePath(path)}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
+                `${API_BASE}/contents/${path}` +
+                `?ref=${GITHUB_BRANCH}`,
                 {
-                    headers:
-                        getGitHubHeaders()
+                    headers: {
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github.raw"
+                    }
                 }
-            );
-
-
-        const data =
-            await safeJson(
-                response
             );
 
 
         if (!response.ok) {
 
             throw new Error(
-                data.message ||
-                `GitHub error ${response.status}`
+                "Download failed."
             );
-
-        }
-
-
-        if (!data.content) {
-
-            throw new Error(
-                "GitHub did not return file content."
-            );
-
-        }
-
-
-        const binary =
-            atob(
-                data.content.replace(
-                    /\s/g,
-                    ""
-                )
-            );
-
-
-        const bytes =
-            new Uint8Array(
-                binary.length
-            );
-
-
-        for (
-            let i = 0;
-            i < binary.length;
-            i++
-        ) {
-
-            bytes[i] =
-                binary.charCodeAt(i);
-
         }
 
 
         const blob =
-            new Blob(
-                [bytes],
-                {
-                    type:
-                        "application/octet-stream"
-                }
-            );
+            await response.blob();
 
 
         const url =
-            URL.createObjectURL(blob);
+            URL.createObjectURL(
+                blob
+            );
 
 
         const link =
@@ -1372,7 +1330,7 @@ async function downloadFile(
 
 
         link.download =
-            fileName;
+            filename;
 
 
         document.body.appendChild(
@@ -1391,13 +1349,13 @@ async function downloadFile(
         );
 
 
-        showStatus(
-            `✅ ${fileName} downloaded.`,
-            "success"
+        setStatus(
+            "Ready"
         );
 
+    }
 
-    } catch (error) {
+    catch (error) {
 
         console.error(
             "Download error:",
@@ -1405,101 +1363,77 @@ async function downloadFile(
         );
 
 
-        showStatus(
-            `❌ Download failed: ${error.message}`,
-            "error"
+        showError(
+            "Download failed: " +
+            error.message
         );
-
     }
-
 }
 
 
-// =========================================================
-// DELETE FILE
-// =========================================================
+window.downloadFile =
+    downloadFile;
+
+
+// ============================================================
+// DELETE
+// ============================================================
 
 async function deleteFile(
-    encodedName
+    filename,
+    sha
 ) {
 
-    if (!githubToken) {
+    const token =
+        sessionStorage.getItem(
+            TOKEN_KEY
+        );
 
-        showStatus(
-            "Please login with GitHub first.",
-            "error"
+
+    if (!token) {
+
+        showError(
+            "Please login first."
         );
 
         return;
-
     }
-
-
-    const fileName =
-        decodeURIComponent(
-            encodedName
-        );
 
 
     if (
         !confirm(
-            `Delete "${fileName}"?`
+            `Delete "${filename}"?`
         )
     ) {
 
         return;
-
     }
 
 
     try {
 
-        showStatus(
-            `Deleting ${fileName}...`,
-            "info"
+        setStatus(
+            `Deleting ${filename}...`
         );
 
 
         const path =
-            `${GITHUB_FOLDER}/${fileName}`;
+            `${GITHUB_FOLDER}/${filename}`;
 
 
-        // Get current SHA
-
-        const getResponse =
+        const response =
             await fetch(
-                `${API_BASE}/contents/${encodePath(path)}?ref=${encodeURIComponent(GITHUB_BRANCH)}`,
-                {
-                    headers:
-                        getGitHubHeaders()
-                }
-            );
-
-
-        const fileData =
-            await safeJson(
-                getResponse
-            );
-
-
-        if (!getResponse.ok) {
-
-            throw new Error(
-                fileData.message ||
-                `GitHub error ${getResponse.status}`
-            );
-
-        }
-
-
-        const deleteResponse =
-            await fetch(
-                `${API_BASE}/contents/${encodePath(path)}`,
+                `${API_BASE}/contents/${path}`,
                 {
                     method: "DELETE",
 
                     headers: {
-                        ...getGitHubHeaders(),
+
+                        "Authorization":
+                            `Bearer ${token}`,
+
+                        "Accept":
+                            "application/vnd.github+json",
 
                         "Content-Type":
                             "application/json"
@@ -1509,45 +1443,41 @@ async function deleteFile(
                         JSON.stringify({
 
                             message:
-                                `Delete ${fileName}`,
+                                `Delete ${filename}`,
 
                             sha:
-                                fileData.sha,
+                                sha,
 
                             branch:
                                 GITHUB_BRANCH
-
                         })
                 }
             );
 
 
-        const deleteData =
-            await safeJson(
-                deleteResponse
-            );
+        const data =
+            await response.json();
 
 
-        if (!deleteResponse.ok) {
+        if (!response.ok) {
 
             throw new Error(
-                deleteData.message ||
-                `GitHub delete error ${deleteResponse.status}`
+                data.message ||
+                "Delete failed."
             );
-
         }
-
-
-        showStatus(
-            `✅ ${fileName} deleted.`,
-            "success"
-        );
 
 
         await loadFiles();
 
 
-    } catch (error) {
+        setStatus(
+            `${filename} deleted`
+        );
+
+    }
+
+    catch (error) {
 
         console.error(
             "Delete error:",
@@ -1555,152 +1485,368 @@ async function deleteFile(
         );
 
 
-        showStatus(
-            `❌ Delete failed: ${error.message}`,
-            "error"
+        showError(
+            "Delete failed: " +
+            error.message
         );
-
     }
-
 }
 
 
-// =========================================================
+window.deleteFile =
+    deleteFile;
+
+
+// ============================================================
 // LOGOUT
-// =========================================================
+// ============================================================
 
 function logoutGitHub() {
 
-    clearToken();
-
-    updateUI();
-
-    showStatus(
-        "You have been logged out.",
-        "info"
+    sessionStorage.removeItem(
+        TOKEN_KEY
     );
 
+
+    sessionStorage.removeItem(
+        STATE_KEY
+    );
+
+
+    sessionStorage.removeItem(
+        VERIFIER_KEY
+    );
+
+
+    showLogin();
+
+
+    setStatus(
+        "Logged out"
+    );
 }
 
 
-// =========================================================
-// CLEAR TOKEN
-// =========================================================
-
-function clearToken() {
-
-    githubToken =
-        null;
+window.logoutGitHub =
+    logoutGitHub;
 
 
-    sessionStorage.removeItem(
-        ACCESS_TOKEN_KEY
-    );
+// ============================================================
+// UI
+// ============================================================
 
+function showApplication() {
 
-    sessionStorage.removeItem(
-        REFRESH_TOKEN_KEY
-    );
-
-
-    sessionStorage.removeItem(
-        TOKEN_EXPIRY_KEY
-    );
-
-}
-
-
-// =========================================================
-// UPDATE UI
-// =========================================================
-
-function updateUI() {
-
-    const loginButton =
+    const login =
         document.getElementById(
-            "loginButton"
+            "loginPage"
         );
 
 
-    const logoutButton =
+    const app =
         document.getElementById(
-            "logoutButton"
+            "appPage"
         );
 
 
-    const loginCard =
+    const headerButton =
         document.getElementById(
-            "loginCard"
+            "headerLoginButton"
         );
 
 
-    const appContent =
-        document.getElementById(
-            "appContent"
-        );
+    if (login) {
 
-
-    const userInfo =
-        document.getElementById(
-            "userInfo"
-        );
-
-
-    if (githubToken) {
-
-        loginButton.style.display =
+        login.style.display =
             "none";
-
-
-        logoutButton.style.display =
-            "inline-block";
-
-
-        loginCard.style.display =
-            "none";
-
-
-        appContent.style.display =
-            "block";
-
-
-        userInfo.style.display =
-            "flex";
-
-    } else {
-
-        loginButton.style.display =
-            "inline-block";
-
-
-        logoutButton.style.display =
-            "none";
-
-
-        loginCard.style.display =
-            "block";
-
-
-        appContent.style.display =
-            "none";
-
-
-        userInfo.style.display =
-            "none";
-
     }
 
+
+    if (app) {
+
+        app.style.display =
+            "block";
+    }
+
+
+    if (headerButton) {
+
+        headerButton.style.display =
+            "none";
+    }
 }
 
 
-// =========================================================
-// FILE → BASE64
-// =========================================================
+function showLogin() {
 
-function fileToBase64(file) {
+    const login =
+        document.getElementById(
+            "loginPage"
+        );
+
+
+    const app =
+        document.getElementById(
+            "appPage"
+        );
+
+
+    const headerButton =
+        document.getElementById(
+            "headerLoginButton"
+        );
+
+
+    if (login) {
+
+        login.style.display =
+            "flex";
+    }
+
+
+    if (app) {
+
+        app.style.display =
+            "none";
+    }
+
+
+    if (headerButton) {
+
+        headerButton.style.display =
+            "block";
+    }
+}
+
+
+// ============================================================
+// USER INFO
+// ============================================================
+
+function updateUserInfo(user) {
+
+    document
+        .querySelectorAll(
+            "[data-github-username]"
+        )
+        .forEach(
+            element => {
+
+                element.textContent =
+                    user.login;
+            }
+        );
+
+
+    document
+        .querySelectorAll(
+            "[data-github-avatar]"
+        )
+        .forEach(
+            element => {
+
+                element.src =
+                    user.avatar_url;
+            }
+        );
+}
+
+
+// ============================================================
+// STATUS
+// ============================================================
+
+function setStatus(message) {
+
+    console.log(
+        "STATUS:",
+        message
+    );
+
+
+    const status =
+        document.getElementById(
+            "connectionStatus"
+        );
+
+
+    if (status) {
+
+        status.textContent =
+            message;
+    }
+}
+
+
+// ============================================================
+// ERROR
+// ============================================================
+
+function showError(message) {
+
+    console.error(
+        message
+    );
+
+
+    const box =
+        document.getElementById(
+            "alertBox"
+        );
+
+
+    if (!box) {
+
+        alert(message);
+
+        return;
+    }
+
+
+    box.textContent =
+        message;
+
+
+    box.style.display =
+        "block";
+}
+
+
+// ============================================================
+// CLEAN OAUTH DATA
+// ============================================================
+
+function clearOAuthData() {
+
+    sessionStorage.removeItem(
+        STATE_KEY
+    );
+
+
+    sessionStorage.removeItem(
+        VERIFIER_KEY
+    );
+}
+
+
+// ============================================================
+// CLEAN URL
+// ============================================================
+
+function cleanURL() {
+
+    const cleanURL =
+        window.location.origin +
+        window.location.pathname;
+
+
+    window.history.replaceState(
+        {},
+        document.title,
+        cleanURL
+    );
+}
+
+
+// ============================================================
+// RANDOM STRING
+// ============================================================
+
+function generateRandomString(
+    length
+) {
+
+    const characters =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ" +
+        "abcdefghijklmnopqrstuvwxyz" +
+        "0123456789-._~";
+
+
+    const values =
+        new Uint8Array(
+            length
+        );
+
+
+    crypto.getRandomValues(
+        values
+    );
+
+
+    return Array.from(
+        values,
+        value =>
+            characters[
+                value %
+                characters.length
+            ]
+    ).join("");
+}
+
+
+// ============================================================
+// PKCE
+// ============================================================
+
+async function generateCodeChallenge(
+    verifier
+) {
+
+    const data =
+        new TextEncoder()
+            .encode(
+                verifier
+            );
+
+
+    const digest =
+        await crypto.subtle.digest(
+            "SHA-256",
+            data
+        );
+
+
+    return base64URL(
+        new Uint8Array(
+            digest
+        )
+    );
+}
+
+
+function base64URL(bytes) {
+
+    let binary = "";
+
+
+    for (
+        const byte of bytes
+    ) {
+
+        binary +=
+            String.fromCharCode(
+                byte
+            );
+    }
+
+
+    return btoa(binary)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "");
+}
+
+
+// ============================================================
+// FILE -> BASE64
+// ============================================================
+
+function fileToBase64(
+    file
+) {
 
     return new Promise(
-        function (resolve, reject) {
+        (resolve, reject) => {
 
             const reader =
                 new FileReader();
@@ -1713,16 +1859,13 @@ function fileToBase64(file) {
                         reader.result;
 
 
-                    const commaIndex =
-                        result.indexOf(",");
+                    const base64 =
+                        result.split(",")[1];
 
 
                     resolve(
-                        result.substring(
-                            commaIndex + 1
-                        )
+                        base64
                     );
-
                 };
 
 
@@ -1731,94 +1874,36 @@ function fileToBase64(file) {
 
                     reject(
                         new Error(
-                            "Could not read file."
+                            "Unable to read file."
                         )
                     );
-
                 };
 
 
             reader.readAsDataURL(
                 file
             );
-
         }
     );
-
 }
 
 
-// =========================================================
-// ENCODE PATH
-// =========================================================
-//
-// Encode every path segment individually.
-// This allows filenames containing spaces,
-// #, %, &, etc.
-//
+// ============================================================
+// FILE SIZE
+// ============================================================
 
-function encodePath(path) {
+function formatBytes(
+    bytes
+) {
 
-    return path
-        .split("/")
-        .map(
-            part =>
-                encodeURIComponent(part)
-        )
-        .join("/");
+    if (!bytes) {
 
-}
-
-
-// =========================================================
-// SAFE JSON
-// =========================================================
-
-async function safeJson(response) {
-
-    const text =
-        await response.text();
-
-
-    if (!text) {
-        return {};
-    }
-
-
-    try {
-
-        return JSON.parse(text);
-
-    } catch {
-
-        return {
-            message:
-                text
-        };
-
-    }
-
-}
-
-
-// =========================================================
-// FORMAT BYTES
-// =========================================================
-
-function formatBytes(bytes) {
-
-    if (
-        bytes === 0 ||
-        bytes === undefined
-    ) {
-
-        return "0 B";
-
+        return "0 Bytes";
     }
 
 
     const units = [
-        "B",
+        "Bytes",
         "KB",
         "MB",
         "GB"
@@ -1845,68 +1930,4 @@ function formatBytes(bytes) {
         " " +
         units[index]
     );
-
-}
-
-
-// =========================================================
-// ESCAPE HTML
-// =========================================================
-
-function escapeHtml(text) {
-
-    const div =
-        document.createElement(
-            "div"
-        );
-
-
-    div.textContent =
-        text;
-
-
-    return div.innerHTML;
-
-}
-
-
-// =========================================================
-// STATUS MESSAGE
-// =========================================================
-
-function showStatus(
-    message,
-    type
-) {
-
-    const status =
-        document.getElementById(
-            "status"
-        );
-
-
-    status.textContent =
-        message;
-
-
-    status.className =
-        `status ${type}`;
-
-}
-
-
-// =========================================================
-// SLEEP
-// =========================================================
-
-function sleep(ms) {
-
-    return new Promise(
-        resolve =>
-            setTimeout(
-                resolve,
-                ms
-            )
-    );
-
 }

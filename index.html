@@ -4,10 +4,8 @@
 <head>
     <meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>DB SPACE - GitHub File Storage</title>
 
@@ -15,251 +13,368 @@
 
         * {
             box-sizing: border-box;
-            margin: 0;
-            padding: 0;
         }
 
         body {
+            margin: 0;
             font-family:
                 Arial,
                 Helvetica,
                 sans-serif;
 
             background: #f4f6f8;
-            color: #1f2937;
-            min-height: 100vh;
+            color: #172033;
         }
 
+        /* =========================
+           HEADER
+        ========================= */
+
         header {
-            background: #111827;
+            height: 132px;
+
+            background: #101827;
             color: white;
-            padding: 20px 30px;
 
             display: flex;
             align-items: center;
             justify-content: space-between;
 
-            gap: 20px;
+            padding: 25px 40px;
         }
 
-        .header-left h1 {
-            font-size: 25px;
-            margin-bottom: 5px;
-        }
-
-        .header-left p {
-            font-size: 13px;
-            color: #9ca3af;
-        }
-
-        .header-right {
+        .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
         }
 
-        button {
+        .folder-icon {
+            font-size: 38px;
+        }
+
+        .brand-title {
+            font-size: 38px;
+            font-weight: 700;
+        }
+
+        .brand-subtitle {
+            margin-top: 5px;
+            font-size: 19px;
+            color: #aebbd0;
+        }
+
+        .github-login-button {
             border: none;
-            cursor: pointer;
-            border-radius: 8px;
-            padding: 10px 16px;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        #loginButton {
             background: white;
             color: #111827;
+
+            padding: 16px 28px;
+
+            border-radius: 12px;
+
+            font-size: 19px;
+            font-weight: 700;
+
+            cursor: pointer;
         }
 
-        #loginButton:hover {
-            background: #e5e7eb;
+        .github-login-button:hover {
+            background: #e9edf3;
         }
 
-        #logoutButton {
-            background: #dc2626;
-            color: white;
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        main {
+            max-width: 1560px;
+            margin: auto;
+
+            padding: 42px;
         }
 
-        #logoutButton:hover {
-            background: #b91c1c;
+
+        /* =========================
+           ALERT
+        ========================= */
+
+        #alertBox {
+            display: none;
+
+            background: #fee2e2;
+            color: #b91c1c;
+
+            padding: 18px 22px;
+
+            border-radius: 12px;
+
+            margin-bottom: 28px;
+
+            font-size: 18px;
         }
 
-        .container {
-            width: min(1100px, 94%);
-            margin: 30px auto;
-        }
 
-        .card {
+        /* =========================
+           LOGIN PAGE
+        ========================= */
+
+        #loginPage {
             background: white;
-            border-radius: 14px;
-            padding: 24px;
-            margin-bottom: 20px;
+
+            border-radius: 22px;
+
+            min-height: 435px;
+
+            display: flex;
+
+            justify-content: center;
+            align-items: center;
+
+            text-align: center;
 
             box-shadow:
-                0 4px 18px rgba(0, 0, 0, 0.06);
+                0 8px 30px rgba(0, 0, 0, 0.07);
         }
 
-        .login-card {
-            text-align: center;
-            padding: 50px 20px;
+        .login-content {
+            max-width: 700px;
         }
 
         .login-icon {
-            font-size: 55px;
-            margin-bottom: 15px;
+            font-size: 75px;
         }
 
-        .login-card h2 {
-            margin-bottom: 10px;
+        .login-title {
+            font-size: 36px;
+            margin: 20px 0 12px;
         }
 
-        .login-card p {
-            color: #6b7280;
-            margin-bottom: 25px;
+        .login-description {
+            font-size: 21px;
+            color: #64748b;
+
+            margin-bottom: 35px;
         }
 
-        #userInfo {
+        .continue-button {
+            border: none;
+
+            background: #2563eb;
+            color: white;
+
+            padding: 17px 28px;
+
+            border-radius: 11px;
+
+            font-size: 18px;
+            font-weight: 700;
+
+            cursor: pointer;
+        }
+
+        .continue-button:hover {
+            background: #1d4ed8;
+        }
+
+
+        /* =========================
+           APP PAGE
+        ========================= */
+
+        #appPage {
             display: none;
-            font-size: 13px;
-            color: #d1d5db;
         }
 
-        #userAvatar {
-            width: 34px;
-            height: 34px;
+        .top-card {
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 25px 30px;
+
+            margin-bottom: 25px;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            box-shadow:
+                0 6px 25px rgba(0,0,0,0.06);
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 52px;
+            height: 52px;
+
             border-radius: 50%;
-            vertical-align: middle;
-            margin-right: 8px;
         }
 
-        .upload-area {
-            border: 2px dashed #cbd5e1;
-            border-radius: 12px;
+        .username {
+            font-size: 20px;
+            font-weight: 700;
+        }
 
-            padding: 40px 20px;
+        .status {
+            color: #64748b;
+            margin-top: 5px;
+        }
+
+        .logout-button {
+            border: none;
+
+            background: #ef4444;
+            color: white;
+
+            padding: 12px 20px;
+
+            border-radius: 9px;
+
+            cursor: pointer;
+
+            font-weight: 700;
+        }
+
+
+        /* =========================
+           UPLOAD CARD
+        ========================= */
+
+        .upload-card {
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            margin-bottom: 25px;
+
+            box-shadow:
+                0 6px 25px rgba(0,0,0,0.06);
+        }
+
+        .upload-title {
+            font-size: 24px;
+            font-weight: 700;
+
+            margin-bottom: 20px;
+        }
+
+        #dropZone {
+
+            border: 2px dashed #94a3b8;
+
+            border-radius: 15px;
+
+            padding: 55px;
+
             text-align: center;
+
+            cursor: pointer;
+
+            background: #f8fafc;
 
             transition: 0.2s;
         }
 
-        .upload-area.dragover {
+        #dropZone:hover,
+        #dropZone.drag-over {
+
             border-color: #2563eb;
+
             background: #eff6ff;
         }
 
-        .upload-icon {
-            font-size: 42px;
-            margin-bottom: 10px;
+        .drop-icon {
+            font-size: 48px;
         }
 
-        .upload-area h3 {
-            margin-bottom: 8px;
+        .drop-text {
+            font-size: 20px;
+            font-weight: 600;
+
+            margin-top: 10px;
         }
 
-        .upload-area p {
-            color: #6b7280;
-            margin-bottom: 20px;
+        .drop-subtext {
+            color: #64748b;
+            margin-top: 8px;
         }
 
         #fileInput {
             display: none;
         }
 
-        .select-button {
-            background: #2563eb;
-            color: white;
+
+        /* =========================
+           FILE LIST
+        ========================= */
+
+        .files-card {
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 30px;
+
+            box-shadow:
+                0 6px 25px rgba(0,0,0,0.06);
         }
 
-        .select-button:hover {
-            background: #1d4ed8;
-        }
+        .files-title {
+            font-size: 24px;
+            font-weight: 700;
 
-        #selectedFile {
-            margin-top: 15px;
-            font-size: 14px;
-            color: #374151;
-        }
-
-        #uploadButton {
-            margin-top: 15px;
-            background: #16a34a;
-            color: white;
-            display: none;
-        }
-
-        #uploadButton:hover {
-            background: #15803d;
-        }
-
-        .progress-container {
-            display: none;
-            margin-top: 20px;
-        }
-
-        .progress-bar {
-            width: 100%;
-            height: 10px;
-            background: #e5e7eb;
-            border-radius: 10px;
-            overflow: hidden;
-        }
-
-        .progress-fill {
-            width: 0%;
-            height: 100%;
-            background: #2563eb;
-            transition: width 0.2s;
-        }
-
-        #progressText {
-            font-size: 12px;
-            margin-top: 7px;
-            color: #6b7280;
-        }
-
-        .section-title {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
             margin-bottom: 20px;
         }
 
-        .refresh-button {
-            background: #e5e7eb;
-            color: #111827;
-        }
+        .file-row {
 
-        .refresh-button:hover {
-            background: #d1d5db;
-        }
+            display: grid;
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+            grid-template-columns:
+                1fr
+                120px
+                110px
+                90px;
 
-        th,
-        td {
-            padding: 13px 10px;
-            text-align: left;
+            gap: 15px;
+
+            align-items: center;
+
+            padding: 16px 0;
+
             border-bottom: 1px solid #e5e7eb;
         }
 
-        th {
-            background: #f9fafb;
-            font-size: 13px;
-            color: #4b5563;
+        .file-name {
+            font-weight: 600;
+
+            word-break: break-word;
         }
 
-        td {
-            font-size: 14px;
+        .file-size {
+            color: #64748b;
         }
 
-        .action-button {
-            padding: 7px 10px;
-            font-size: 12px;
-            margin-right: 5px;
+        .file-row button {
+
+            border: none;
+
+            padding: 9px 12px;
+
+            border-radius: 7px;
+
+            cursor: pointer;
+
+            font-weight: 600;
         }
 
         .download-button {
@@ -268,365 +383,252 @@
         }
 
         .delete-button {
-            background: #dc2626;
-            color: white;
-        }
-
-        .status {
-            padding: 12px 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-
-            display: none;
-
-            font-size: 14px;
-        }
-
-        .status.success {
-            display: block;
-            background: #dcfce7;
-            color: #166534;
-        }
-
-        .status.error {
-            display: block;
             background: #fee2e2;
-            color: #991b1b;
+            color: #b91c1c;
         }
 
-        .status.info {
-            display: block;
-            background: #dbeafe;
-            color: #1e40af;
-        }
+        .empty-files {
 
-        #loading {
+            padding: 40px;
+
             text-align: center;
-            color: #6b7280;
-            padding: 25px;
+
+            color: #64748b;
         }
 
-        .empty {
-            text-align: center;
-            color: #6b7280;
-            padding: 30px;
-        }
 
-        .device-login {
-            display: none;
-            margin-top: 25px;
-            padding: 20px;
-            background: #f3f4f6;
-            border-radius: 10px;
-        }
+        /* =========================
+           RESPONSIVE
+        ========================= */
 
-        .device-code {
-            font-size: 30px;
-            font-weight: bold;
-            letter-spacing: 4px;
-            margin: 12px 0;
-            color: #111827;
-        }
-
-        .device-url {
-            display: inline-block;
-            background: #111827;
-            color: white;
-            padding: 10px 15px;
-            border-radius: 7px;
-            text-decoration: none;
-            margin-top: 5px;
-        }
-
-        .device-url:hover {
-            background: #374151;
-        }
-
-        @media (max-width: 700px) {
+        @media (max-width: 800px) {
 
             header {
+                height: auto;
+
+                padding: 20px;
+
                 flex-direction: column;
+
+                gap: 20px;
+
                 align-items: flex-start;
             }
 
-            table {
-                font-size: 12px;
+            .brand-title {
+                font-size: 28px;
             }
 
-            th:nth-child(3),
-            td:nth-child(3) {
-                display: none;
+            main {
+                padding: 20px;
             }
 
+            .file-row {
+
+                grid-template-columns: 1fr;
+
+                gap: 8px;
+            }
+
+            .top-card {
+
+                flex-direction: column;
+
+                gap: 20px;
+
+                align-items: flex-start;
+            }
         }
 
     </style>
 </head>
 
+
 <body>
 
 <header>
 
-    <div class="header-left">
+    <div>
 
-        <h1>📁 DB SPACE</h1>
+        <div class="brand">
 
-        <p>
-            GitHub File Storage
-            · ramumeyyappan/DB_SPACE
-        </p>
+            <div class="folder-icon">
+                📁
+            </div>
 
-    </div>
+            <div>
 
-    <div class="header-right">
+                <div class="brand-title">
+                    DB SPACE
+                </div>
 
-        <div id="userInfo">
+                <div class="brand-subtitle">
+                    GitHub File Storage · DB_SPACE
+                </div>
 
-            <img
-                id="userAvatar"
-                src=""
-                alt="GitHub"
-            >
-
-            <span id="username"></span>
+            </div>
 
         </div>
 
-        <button
-            id="loginButton"
-            onclick="loginWithGitHub()"
-        >
-            🔐 Login with GitHub
-        </button>
-
-        <button
-            id="logoutButton"
-            onclick="logoutGitHub()"
-            style="display:none;"
-        >
-            Logout
-        </button>
-
     </div>
+
+
+    <button
+        id="headerLoginButton"
+        class="github-login-button"
+        onclick="continueWithGitHub()">
+
+        🔐 Login with GitHub
+
+    </button>
 
 </header>
 
 
-<div class="container">
+<main>
 
-    <div
-        id="status"
-        class="status"
-    ></div>
+    <!-- ALERT -->
+
+    <div id="alertBox"></div>
 
 
     <!-- LOGIN -->
 
-    <div
-        id="loginCard"
-        class="card login-card"
-    >
+    <section id="loginPage">
 
-        <div class="login-icon">
-            🔐
-        </div>
+        <div class="login-content">
 
-        <h2>
-            Login with GitHub
-        </h2>
-
-        <p>
-            Sign in with your GitHub account
-            to access DB SPACE.
-        </p>
-
-        <button
-            class="select-button"
-            onclick="loginWithGitHub()"
-        >
-            Continue with GitHub
-        </button>
-
-
-        <div
-            id="deviceLogin"
-            class="device-login"
-        >
-
-            <strong>
-                Enter this code on GitHub
-            </strong>
-
-            <div
-                id="deviceCode"
-                class="device-code"
-            >
-                ----
+            <div class="login-icon">
+                🔐
             </div>
 
-            <a
-                id="deviceUrl"
-                class="device-url"
-                href="https://github.com/login/device"
-                target="_blank"
-            >
-                Open GitHub Authorization
-            </a>
+            <h1 class="login-title">
+                Login with GitHub
+            </h1>
 
-            <p style="margin-top:15px;">
-                After authorization, this page
-                will automatically continue.
+            <p class="login-description">
+                Sign in with your GitHub account
+                to access DB SPACE.
             </p>
+
+            <button
+                class="continue-button"
+                onclick="continueWithGitHub()">
+
+                Continue with GitHub
+
+            </button>
 
         </div>
 
-    </div>
+    </section>
 
 
     <!-- APPLICATION -->
 
-    <div
-        id="appContent"
-        style="display:none;"
-    >
+    <section id="appPage">
+
+        <!-- USER -->
+
+        <div class="top-card">
+
+            <div class="user-info">
+
+                <img
+                    class="user-avatar"
+                    data-github-avatar
+                    src=""
+                    alt="GitHub avatar">
+
+                <div>
+
+                    <div
+                        class="username"
+                        data-github-username>
+                    </div>
+
+                    <div
+                        id="connectionStatus"
+                        class="status">
+
+                        Connected to GitHub
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <button
+                class="logout-button"
+                onclick="logoutGitHub()">
+
+                Logout
+
+            </button>
+
+        </div>
+
 
         <!-- UPLOAD -->
 
-        <div class="card">
+        <div class="upload-card">
 
-            <h2 style="margin-bottom:20px;">
-                Upload File
-            </h2>
+            <div class="upload-title">
+                Upload Files
+            </div>
 
-            <div
-                id="uploadArea"
-                class="upload-area"
-            >
 
-                <div class="upload-icon">
+            <div id="dropZone">
+
+                <div class="drop-icon">
                     📤
                 </div>
 
-                <h3>
-                    Select or drop a file
-                </h3>
+                <div class="drop-text">
+                    Drag & Drop files here
+                </div>
 
-                <p>
-                    Maximum file size:
-                    100 MB
-                </p>
-
-                <input
-                    type="file"
-                    id="fileInput"
-                >
-
-                <button
-                    class="select-button"
-                    onclick="document.getElementById('fileInput').click()"
-                >
-                    Select File
-                </button>
-
-                <div id="selectedFile"></div>
-
-                <button
-                    id="uploadButton"
-                    onclick="uploadFile()"
-                >
-                    ⬆ Upload to GitHub
-                </button>
+                <div class="drop-subtext">
+                    or click to select files
+                </div>
 
             </div>
 
 
-            <div
-                id="progressContainer"
-                class="progress-container"
-            >
+            <input
+                id="fileInput"
+                type="file"
+                multiple>
 
-                <div class="progress-bar">
+        </div>
 
-                    <div
-                        id="progressFill"
-                        class="progress-fill"
-                    ></div>
 
-                </div>
+        <!-- FILES -->
 
-                <div id="progressText">
-                    Uploading...
+        <div class="files-card">
+
+            <div class="files-title">
+                Files
+            </div>
+
+            <div id="fileList">
+
+                <div class="empty-files">
+                    Loading files...
                 </div>
 
             </div>
 
         </div>
 
+    </section>
 
-        <!-- FILE LIST -->
-
-        <div class="card">
-
-            <div class="section-title">
-
-                <h2>
-                    Stored Files
-                </h2>
-
-                <button
-                    class="refresh-button"
-                    onclick="loadFiles()"
-                >
-                    🔄 Refresh
-                </button>
-
-            </div>
-
-
-            <div id="loading">
-                Loading files...
-            </div>
-
-
-            <table id="fileTable">
-
-                <thead>
-
-                    <tr>
-
-                        <th>
-                            File Name
-                        </th>
-
-                        <th>
-                            Size
-                        </th>
-
-                        <th>
-                            Updated
-                        </th>
-
-                        <th>
-                            Actions
-                        </th>
-
-                    </tr>
-
-                </thead>
-
-                <tbody id="fileList"></tbody>
-
-            </table>
-
-        </div>
-
-    </div>
-
-</div>
+</main>
 
 
 <script src="app.js"></script>
 
 </body>
-
 </html>
